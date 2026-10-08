@@ -1,0 +1,68 @@
+{
+  "name": "prism-hub",
+  "productName": "Prism",
+  "version": "1.0.0",
+  "description": "A modular, 3D-styled desktop workspace. Ships with a Text to Braille module.",
+  "author": "theking <animemonster999@gmail.com>",
+  "license": "MIT",
+  "main": "electron/main.js",
+  "scripts": {
+    "vendor": "node scripts/vendor.js",
+    "prestart": "node scripts/vendor.js",
+    "start": "electron .",
+    "predist": "node scripts/vendor.js",
+    "dist": "electron-builder --linux AppImage"
+  },
+  "build": {
+    "appId": "com.theking.prism",
+    "productName": "Prism",
+    "artifactName": "${productName}-${version}-${arch}.AppImage",
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "files": [
+      "electron/**/*",
+      "src/**/*",
+      "build/icon.png",
+      "package.json",
+      "!node_modules/onnxruntime-web/**",
+      "!node_modules/onnxruntime-node/bin/napi-v6/darwin/**",
+      "!node_modules/onnxruntime-node/bin/napi-v6/win32/**",
+      "!node_modules/onnxruntime-node/bin/napi-v6/linux/arm64/**",
+      "!node_modules/onnxruntime-node/bin/napi-v6/linux/x64/libonnxruntime_providers_cuda.so",
+      "!node_modules/onnxruntime-node/bin/napi-v6/linux/x64/libonnxruntime_providers_tensorrt.so",
+      "!node_modules/@huggingface/transformers/dist/{transformers.js,transformers.min.js,transformers.web.js,transformers.web.min.js,transformers.node.cjs,transformers.node.min.cjs,transformers.node.min.mjs,ort-wasm*}",
+      "!node_modules/@huggingface/transformers/{src,types}/**",
+      "!**/*.map"
+    ],
+    "afterPack": "build/after-pack.js",
+    "linux": {
+      "target": [
+        "AppImage"
+      ],
+      "category": "Utility",
+      "icon": "build/icon.png",
+      "synopsis": "Modular 3D workspace",
+      "executableName": "prism",
+      "syncDesktopName": true
+    },
+    "toolsets": {
+      "appimage": "1.0.3"
+    },
+    "asarUnpack": [
+      "node_modules/onnxruntime-node/bin/**",
+      "node_modules/sharp/**",
+      "node_modules/@img/**"
+    ]
+  },
+  "devDependencies": {
+    "electron": "^44.7.0",
+    "electron-builder": "^26.15.3",
+    "three": "^0.186.1"
+  },
+  "desktopName": "prism.desktop",
+  "dependencies": {
+    "@huggingface/transformers": "^4.3.1"
+  }
+}

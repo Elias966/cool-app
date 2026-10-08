@@ -1,0 +1,10 @@
+{
+  "id": "braille",
+  "name": "Text to Braille",
+  "description": "Type anything and watch it materialize as Unified English Braille, cell by cell, dot by dot. Or flip it around and decode braille back into text.",
+  "icon": "icon.svg",
+  "accent": "#7c5cff",
+  "entry": "index.js",
+  "style": "style.css",
+  "order": 10
+}

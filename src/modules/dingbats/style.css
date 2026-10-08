@@ -1,0 +1,352 @@
+/* Text to Dingbats module. Everything is scoped under .dg */
+
+/* Bundled symbol fonts (SIL Open Font License, see fonts/OFL.txt) so every
+   symbol looks the same on any machine, even without Wingdings installed. */
+@font-face { font-family: 'DG Symbols2'; src: url('fonts/NotoSansSymbols2-Regular.ttf') format('truetype'); font-display: block; }
+@font-face { font-family: 'DG Symbols'; src: url('fonts/NotoSansSymbols-Regular.ttf') format('truetype'); font-display: block; }
+@font-face { font-family: 'DG Math'; src: url('fonts/NotoSansMath-Regular.ttf') format('truetype'); font-display: block; }
+
+@property --dg-ang {
+  syntax: '<angle>';
+  inherits: false;
+  initial-value: 0deg;
+}
+
+.dg {
+  --glyph: 'DG Symbols2', 'DG Symbols', 'DG Math', 'DejaVu Sans', 'Noto Sans', 'Segoe UI Symbol', sans-serif;
+  --warm: #ffd7b8;
+  --kw: 27px;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  height: 100%;
+  overflow: hidden;
+  padding: 22px 44px 26px 36px;
+}
+.dg > :not(.dg-storm) { width: 100%; max-width: 1140px; margin-inline: auto; }
+.dg :is(.dg-face, .dg-out, .dg-key b, .dg-font-glyphs, .dg-live) { font-variant-emoji: text; }
+
+/* ---------------------------------------------------------------- intro */
+.dg-storm { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 6; pointer-events: none; transition: opacity 0.6s ease-out; }
+.dg-storm.gone { opacity: 0; }
+.dg-intro:not(.dg-ready) { cursor: pointer; }
+.dg:not(.dg-ready) :is(.dg-head, .dg-main, .dg-console) { opacity: 0; }
+.dg-ready .dg-head { animation: dgHeadIn 0.9s var(--ease-out) backwards; }
+.dg-ready .dg-main { animation: dgFade 0.8s ease-out 0.2s backwards; }
+.dg-ready .dg-font { animation: dgDeal 0.9s var(--ease-out) backwards; animation-delay: calc(0.15s + var(--i) * 0.09s); }
+.dg-ready .dg-console { animation: dgUnfold 1.2s var(--ease-out) 0.2s backwards; transform-origin: 50% 100%; }
+@keyframes dgHeadIn { from { opacity: 0; transform: translateY(-40px) rotateX(40deg); filter: blur(8px); } }
+@keyframes dgFade { from { opacity: 0; } }
+@keyframes dgDeal { from { opacity: 0; transform: translateY(-60px) rotateY(-90deg) rotateZ(-12deg) scale(0.7); } }
+@keyframes dgUnfold {
+  0% { opacity: 0; transform: perspective(900px) rotateX(70deg) translateY(60px) scale(0.9); filter: blur(6px) brightness(2); }
+  60% { opacity: 1; filter: none; }
+}
+
+/* ----------------------------------------------------------------- head */
+.dg-head { display: flex; justify-content: space-between; align-items: center; gap: 20px; perspective: 900px; }
+.dg-head-main { min-width: 0; }
+.dg-badge {
+  display: inline-flex; align-items: center; gap: 9px; padding: 6px 13px; border-radius: 99px; font-size: 10.5px; letter-spacing: 0.3em;
+  color: var(--muted); border: 1px solid var(--line-strong); background: rgba(255, 255, 255, 0.03);
+}
+.dg-badge span { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 10px var(--accent); }
+.dg-title {
+  margin: 12px 0 6px; font-size: clamp(32px, 4vw, 54px); font-weight: 850; color: #fff; line-height: 1.05;
+  font-family: var(--font), var(--glyph);
+  text-shadow:
+    1px 1px 0 color-mix(in srgb, var(--accent) 85%, #fff),
+    2px 2px 0 color-mix(in srgb, var(--accent) 72%, #000),
+    3px 3px 0 color-mix(in srgb, var(--accent) 58%, #000),
+    4px 4px 0 color-mix(in srgb, var(--accent) 44%, #000),
+    5px 5px 0 color-mix(in srgb, var(--accent) 30%, #000),
+    8px 10px 18px rgba(0, 0, 0, 0.6),
+    0 0 50px color-mix(in srgb, var(--accent) 55%, transparent);
+}
+.dg-sub { margin: 0; max-width: 460px; color: var(--muted); font-size: 13.5px; line-height: 1.5; }
+
+/* Font deck: four 3D cards */
+.dg-deck { display: flex; gap: 12px; flex-shrink: 0; perspective: 700px; }
+.dg-font {
+  --mx: 50%; --my: 50%;
+  position: relative; width: 116px; padding: 12px 10px 10px; border-radius: 16px; cursor: pointer; text-align: center;
+  display: flex; flex-direction: column; align-items: center; gap: 4px; transform-style: preserve-3d;
+  background:
+    radial-gradient(160px circle at var(--mx) var(--my), color-mix(in srgb, var(--accent) 14%, transparent), transparent 60%),
+    linear-gradient(160deg, rgba(40, 32, 58, 0.78), rgba(14, 12, 26, 0.78));
+  border: 1px solid var(--line-strong); color: var(--muted);
+  box-shadow: 0 16px 34px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.07);
+  transition: transform 0.35s var(--ease-out), border-color 0.3s, box-shadow 0.3s, color 0.3s;
+}
+.dg-font-glyphs { display: flex; gap: 4px; font-family: var(--glyph); font-size: 22px; color: var(--warm); transform: translateZ(26px); }
+.dg-font-glyphs i { font-style: normal; transition: transform 0.4s var(--ease-out); }
+.dg-font:hover .dg-font-glyphs i:nth-child(1) { transform: translateY(-3px) rotate(-8deg); }
+.dg-font:hover .dg-font-glyphs i:nth-child(3) { transform: translateY(-3px) rotate(8deg); }
+.dg-font-name { font-size: 13px; font-weight: 750; color: var(--text); transform: translateZ(16px); }
+.dg-font-maker { font-size: 10px; letter-spacing: 0.04em; transform: translateZ(10px); }
+.dg-font[aria-checked='true'] {
+  color: color-mix(in srgb, var(--accent) 45%, #fff);
+  border-color: color-mix(in srgb, var(--accent) 70%, transparent);
+  box-shadow: 0 22px 44px rgba(0, 0, 0, 0.5), 0 0 34px color-mix(in srgb, var(--accent) 40%, transparent), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  background:
+    radial-gradient(160px circle at var(--mx) var(--my), color-mix(in srgb, var(--accent) 22%, transparent), transparent 60%),
+    linear-gradient(160deg, color-mix(in srgb, var(--accent) 26%, rgba(40, 32, 58, 0.9)), rgba(18, 12, 26, 0.85));
+}
+.dg-font[aria-checked='true'] .dg-font-glyphs { color: #fff; text-shadow: 0 0 12px var(--accent); }
+.dg-font[aria-checked='true']::after {
+  content: ''; position: absolute; left: 30%; right: 30%; bottom: -7px; height: 3px; border-radius: 3px;
+  background: var(--accent); box-shadow: 0 0 12px var(--accent);
+}
+
+/* ----------------------------------------------------------------- main */
+.dg-main { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) 432px; gap: 18px; }
+.dg-left { min-height: 0; display: flex; flex-direction: column; gap: 12px; }
+.dg-side { min-height: 0; display: flex; flex-direction: column; gap: 12px; }
+
+.dg-panel, .dg-stream, .dg-kb, .dg-info {
+  border-radius: 20px; background: linear-gradient(160deg, rgba(40, 30, 52, 0.66), rgba(12, 10, 22, 0.72));
+  border: 1px solid var(--line-strong); backdrop-filter: blur(14px);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+/* Live tiles */
+.dg-stream { position: relative; flex-shrink: 0; min-height: 112px; max-height: 196px; overflow-y: auto; padding: 14px; perspective: 800px; }
+.dg-stream-tiles { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.dg-stream-hint {
+  position: absolute; inset: 0; display: grid; place-items: center; padding: 20px; text-align: center;
+  color: var(--muted); font-size: 13px; pointer-events: none; transition: opacity 0.3s;
+}
+.dg-has-text .dg-stream-hint { opacity: 0; }
+.dg-gap { width: 16px; }
+.dg-break { flex-basis: 100%; height: 0; }
+.dg-more { align-self: center; padding: 6px 12px; border-radius: 99px; font-size: 12px; color: var(--muted); border: 1px dashed var(--line-strong); }
+
+.dg-tile { width: 44px; height: 50px; perspective: 400px; cursor: default; }
+.dg-tile-in {
+  position: relative; display: block; width: 100%; height: 100%; transform-style: preserve-3d;
+  transition: transform 0.5s var(--ease-out);
+}
+.dg-tile:hover .dg-tile-in { transform: rotateY(180deg); }
+.dg-face, .dg-back {
+  position: absolute; inset: 0; display: grid; place-items: center; border-radius: 11px; backface-visibility: hidden;
+  border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
+}
+.dg-face {
+  font-family: var(--glyph); font-size: 25px; color: #fff; line-height: 1;
+  background: linear-gradient(160deg, color-mix(in srgb, var(--accent) 22%, rgba(255, 255, 255, 0.04)), rgba(255, 255, 255, 0.02));
+  text-shadow: 0 0 12px color-mix(in srgb, var(--accent) 80%, transparent);
+  box-shadow: inset 0 -3px 6px rgba(0, 0, 0, 0.3), 0 6px 14px rgba(0, 0, 0, 0.35);
+}
+.dg-back {
+  transform: rotateY(180deg); align-content: center; gap: 1px;
+  background: linear-gradient(160deg, color-mix(in srgb, var(--accent) 40%, #1a1020), #140c18);
+}
+.dg-back b { font: 800 16px var(--mono); color: #fff; line-height: 1; }
+.dg-back i { font: 600 9px var(--mono); font-style: normal; color: var(--warm); }
+.dg-tile.same .dg-face { color: var(--muted); text-shadow: none; font-family: var(--font); font-size: 20px; border-style: dashed; background: rgba(255, 255, 255, 0.02); }
+.dg-tile.fresh .dg-tile-in { animation: dgTileIn 0.55s var(--ease-out) backwards; }
+.dg-tile.reskin .dg-tile-in { animation: dgReskin 0.7s var(--ease-out) backwards; animation-delay: calc(min(var(--i), 40) * 18ms); }
+@keyframes dgTileIn { from { transform: translateY(-18px) rotateX(-90deg) scale(0.6); opacity: 0; } }
+@keyframes dgReskin { from { transform: rotateY(-180deg) scale(0.8); } }
+
+/* --------------------------------------------------------------- keyboard */
+.dg-kb { padding: 12px 14px 14px; perspective: 900px; }
+.dg-kb-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted); }
+.dg-kb-rows { display: flex; flex-direction: column; gap: 5px; }
+.dg-kb-row { display: flex; gap: 4px; justify-content: center; }
+.dg-kb-row:nth-child(2) { padding-left: calc(var(--kw) * 0.5); }
+.dg-kb-row:nth-child(3) { padding-left: calc(var(--kw) * 0.9); }
+.dg-kb-row:nth-child(4) { padding-left: calc(var(--kw) * 1.4); }
+.dg-key {
+  position: relative; width: var(--kw); height: 36px; padding: 0; border-radius: 8px; cursor: pointer;
+  display: grid; place-items: center; color: #fff;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.03));
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 4px 0 rgba(0, 0, 0, 0.45), 0 8px 14px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  transition: transform 0.12s, box-shadow 0.12s, border-color 0.2s, background 0.2s;
+}
+.dg-key b { font-family: var(--glyph); font-weight: 400; font-size: 16px; line-height: 1; margin-top: -4px; }
+.dg-key span { position: absolute; bottom: 2px; right: 4px; font: 600 8.5px var(--mono); color: var(--muted); }
+.dg-key.same b { color: var(--muted); font-family: var(--font); font-size: 13px; }
+.dg-key:hover { border-color: color-mix(in srgb, var(--accent) 60%, transparent); background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 22%, transparent), rgba(255, 255, 255, 0.03)); }
+.dg-key:active { transform: translateY(3px); box-shadow: 0 1px 0 rgba(0, 0, 0, 0.45), 0 4px 8px rgba(0, 0, 0, 0.3); }
+.dg-key.press { animation: dgPress 0.5s var(--ease-out); }
+@keyframes dgPress {
+  0% { transform: translateY(3px); box-shadow: 0 1px 0 rgba(0, 0, 0, 0.45); }
+  30% { background: color-mix(in srgb, var(--accent) 60%, transparent); border-color: var(--accent); box-shadow: 0 0 22px var(--accent); }
+}
+.dg-key.flip { animation: dgKeyFlip 0.5s var(--ease-out) backwards; animation-delay: calc(var(--k) * 8ms); }
+@keyframes dgKeyFlip { from { transform: rotateX(-110deg); opacity: 0.2; } }
+.dg-space { width: 60%; margin: 7px auto 0; font: 600 11px var(--font); letter-spacing: 0.2em; color: var(--muted); display: grid; }
+
+/* -------------------------------------------------------------- font info */
+.dg-info { padding: 14px 16px; flex: 1; min-height: 0; overflow: auto; }
+.dg-info-name { font-size: 20px; font-weight: 800; color: #fff; text-shadow: 0 0 18px color-mix(in srgb, var(--accent) 50%, transparent); }
+.dg-info-maker { font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: color-mix(in srgb, var(--accent) 50%, #fff); margin-top: 2px; }
+.dg-info-blurb { margin: 10px 0 8px; font-size: 13px; line-height: 1.5; color: var(--text); }
+.dg-info-fact { margin: 0; font-size: 12.5px; line-height: 1.5; color: var(--muted); }
+.dg-info-fact b { color: var(--warm); }
+
+/* ----------------------------------------------------------------- feed */
+.dg-feed {
+  flex: 1; min-height: 0; overflow-y: auto; padding: 14px 12px 12px 4px; perspective: 1400px;
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 18px, #000 calc(100% - 14px), transparent 100%);
+}
+.dg-empty { height: 100%; min-height: 100px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; color: var(--muted); text-align: center; }
+.dg-empty[hidden] { display: none; }
+.dg-empty p { margin: 0; font-size: 14px; }
+.dg-samples { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+
+.dg-chip {
+  border: 1px solid var(--line-strong); background: rgba(255, 255, 255, 0.04); color: var(--text); cursor: pointer;
+  padding: 7px 13px; border-radius: 11px; font-size: 12.5px; transition: background 0.2s, border-color 0.2s, transform 0.2s, box-shadow 0.2s;
+}
+.dg-chip:hover { background: rgba(255, 255, 255, 0.09); border-color: color-mix(in srgb, var(--accent) 60%, transparent); transform: translateY(-1px); }
+.dg-chip-primary { background: color-mix(in srgb, var(--accent) 20%, transparent); border-color: color-mix(in srgb, var(--accent) 55%, transparent); }
+.dg-chip-primary:hover { box-shadow: 0 0 20px color-mix(in srgb, var(--accent) 40%, transparent); }
+.dg-chip-danger:hover { border-color: #e5484d; background: rgba(229, 72, 77, 0.15); }
+.dg-shift { padding: 4px 10px; font-size: 11px; letter-spacing: 0.04em; text-transform: none; }
+.dg-shift[aria-pressed='true'] { color: #fff; background: color-mix(in srgb, var(--accent) 26%, transparent); border-color: color-mix(in srgb, var(--accent) 60%, transparent); box-shadow: 0 0 14px color-mix(in srgb, var(--accent) 30%, transparent); }
+
+.dg-card {
+  --mx: 50%; --my: 50%;
+  position: relative; margin-bottom: 14px; padding: 14px 18px 12px; border-radius: 18px;
+  background: linear-gradient(160deg, rgba(44, 32, 58, 0.74), rgba(14, 10, 24, 0.74));
+  border: 1px solid var(--line-strong); backdrop-filter: blur(14px);
+  box-shadow: 0 20px 44px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.07);
+  transition: transform 0.35s var(--ease-out), border-color 0.3s;
+}
+.dg-card:hover { border-color: color-mix(in srgb, var(--accent) 40%, transparent); }
+.dg-card-glare {
+  position: absolute; inset: 0; border-radius: inherit; pointer-events: none; opacity: 0; transition: opacity 0.3s;
+  background: radial-gradient(400px circle at var(--mx) var(--my), color-mix(in srgb, var(--accent) 13%, transparent), transparent 60%);
+}
+.dg-card:hover .dg-card-glare { opacity: 1; }
+.dg-card-new { animation: dgCardIn 0.85s var(--ease-out) backwards; }
+@keyframes dgCardIn { from { opacity: 0; transform: translateY(60px) rotateX(-35deg) scale(0.94); filter: blur(6px); } }
+.dg-card-out { animation: dgCardOut 0.4s ease-in forwards; pointer-events: none; }
+@keyframes dgCardOut { to { opacity: 0; transform: translateX(90px) rotateY(-28deg) scale(0.92); filter: blur(6px); } }
+
+.dg-card-head { display: flex; justify-content: space-between; gap: 14px; align-items: baseline; margin-bottom: 8px; }
+.dg-card-src {
+  font-size: 13.5px; color: var(--muted); white-space: pre-wrap; word-break: break-word; user-select: text;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.dg-card-meta { flex-shrink: 0; display: inline-flex; align-items: center; gap: 8px; font-size: 11px; color: var(--muted); font-family: var(--mono); }
+.dg-tag {
+  font: 700 9.5px var(--font); font-style: normal; letter-spacing: 0.14em; text-transform: uppercase; padding: 3px 8px; border-radius: 99px;
+  color: color-mix(in srgb, var(--accent) 50%, #fff); background: color-mix(in srgb, var(--accent) 14%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
+}
+.dg-out {
+  font-family: var(--glyph); font-size: 27px; line-height: 40px; letter-spacing: 2px;
+  word-break: break-word; white-space: pre-wrap; user-select: text; color: #fff;
+  text-shadow: 0 0 14px color-mix(in srgb, var(--accent) 60%, transparent);
+}
+/* A wrapping flex row instead of text lines: the bundled math font reports very
+   tall line metrics, which would otherwise make every line overflow its box. */
+.dg-out { display: flex; flex-wrap: wrap; align-content: flex-start; }
+.dg-out span { display: block; line-height: 40px; height: 40px; }
+.dg-out .w { display: flex; height: auto; }
+.dg-out .sp { width: 0.4em; }
+.dg-out .nl { flex-basis: 100%; height: 0; }
+/* Mixed fallback fonts make each row a few pixels taller than its box, so the
+   card only becomes scrollable when its content is really long. */
+.dg-out.dg-scroll { max-height: 200px; overflow-y: auto; }
+.dg-out .kept { color: var(--muted); text-shadow: none; font-family: var(--font); font-size: 0.8em; }
+.dg-out .sym { cursor: help; transition: transform 0.25s var(--ease-out); }
+.dg-out .sym:hover { transform: translateY(-4px) scale(1.25); color: var(--warm); }
+.dg-animate span { animation: dgGlyphIn 0.6s var(--ease-out) backwards; animation-delay: calc(var(--i) * 26ms + 100ms); }
+@keyframes dgGlyphIn { from { opacity: 0; transform: perspective(300px) rotateY(-120deg) translateZ(40px) scale(0.5); filter: blur(3px) brightness(2.5); } }
+.dg-card-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.dg-card-actions .dg-chip { padding: 6px 12px; }
+.dg-card-actions [data-act='delete'] { margin-left: auto; }
+
+/* -------------------------------------------------------------- console */
+.dg-console {
+  position: relative; flex-shrink: 0; padding: 12px 16px 10px 20px; border-radius: 22px;
+  background: linear-gradient(160deg, rgba(48, 34, 64, 0.82), rgba(16, 10, 26, 0.86));
+  border: 1px solid var(--line-strong); backdrop-filter: blur(20px) saturate(140%);
+  box-shadow: 0 30px 70px rgba(0, 0, 0, 0.55), 0 0 60px color-mix(in srgb, var(--accent) 14%, transparent), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  transition: transform 0.4s var(--ease-out), box-shadow 0.3s;
+}
+.dg-console:focus-within { box-shadow: 0 30px 70px rgba(0, 0, 0, 0.55), 0 0 80px color-mix(in srgb, var(--accent) 30%, transparent), inset 0 1px 0 rgba(255, 255, 255, 0.08); }
+.dg-console-border {
+  position: absolute; inset: -1px; border-radius: inherit; padding: 1.5px; pointer-events: none;
+  background: conic-gradient(from var(--dg-ang), transparent 0 55%, var(--accent) 72%, #f472b6 84%, transparent 95%);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor; mask-composite: exclude;
+  animation: dgBorderSpin 5s linear infinite; opacity: 0.85;
+}
+.dg-console:focus-within .dg-console-border { animation-duration: 2.2s; }
+@keyframes dgBorderSpin { to { --dg-ang: 360deg; } }
+
+.dg-live {
+  height: 28px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
+  font-family: var(--glyph); font-size: 19px; letter-spacing: 2px; line-height: 28px;
+  color: var(--warm); text-shadow: 0 0 10px color-mix(in srgb, var(--accent) 60%, transparent);
+  transition: opacity 0.3s;
+}
+.dg-live.idle { opacity: 0.3; animation: dgBreathe 3s ease-in-out infinite; }
+@keyframes dgBreathe { 50% { opacity: 0.55; } }
+
+.dg-inputrow { display: flex; align-items: flex-end; gap: 14px; margin-top: 2px; }
+.dg-input {
+  flex: 1; min-height: 48px; max-height: 160px; padding: 11px 2px; resize: none; border: 0; outline: 0; background: transparent;
+  color: var(--text); font: 400 18px/1.45 var(--font); user-select: text; caret-color: var(--accent);
+}
+.dg-input::placeholder { color: rgba(240, 220, 210, 0.35); }
+.dg-send {
+  flex-shrink: 0; height: 48px; padding: 0 22px; border: 0; border-radius: 15px; cursor: pointer;
+  display: inline-flex; align-items: center; gap: 10px; font-weight: 700; font-size: 15px; color: #1d0a00;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 60%, #fff), var(--accent) 55%, #f472b6);
+  box-shadow: 0 10px 30px color-mix(in srgb, var(--accent) 45%, transparent), inset 0 1px 0 rgba(255, 255, 255, 0.5), inset 0 -3px 0 rgba(0, 0, 0, 0.18);
+  transition: translate 0.2s ease-out, box-shadow 0.25s, filter 0.2s;
+}
+.dg-send svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; transition: transform 0.3s var(--ease-out); }
+.dg-send:hover { filter: brightness(1.1); box-shadow: 0 14px 40px color-mix(in srgb, var(--accent) 65%, transparent), inset 0 1px 0 rgba(255, 255, 255, 0.5), inset 0 -3px 0 rgba(0, 0, 0, 0.18); }
+.dg-send:hover svg { transform: translateX(4px); }
+
+.dg-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 8px; font-size: 11.5px; color: var(--muted); }
+.dg-hint kbd {
+  font-family: var(--mono); font-size: 10.5px; padding: 1px 6px; border-radius: 5px; color: var(--text);
+  background: rgba(255, 255, 255, 0.07); border: 1px solid var(--line-strong); border-bottom-width: 2px;
+}
+.dg-counter { margin-left: auto; font-family: var(--mono); }
+
+@media (max-width: 1240px) {
+  .dg { --kw: 23px; }
+  .dg-main { grid-template-columns: minmax(0, 1fr) 368px; }
+  .dg-font { width: 98px; }
+  .dg-sub { display: none; }
+}
+@media (max-width: 1060px) {
+  .dg-main { grid-template-columns: minmax(0, 1fr); }
+  .dg-side { display: none; }
+}
+
+/* ------------------------------------------------------------ decode mode */
+.dg-modes { display: inline-flex; padding: 3px; border-radius: 11px; background: rgba(0, 0, 0, 0.3); border: 1px solid var(--line-strong); }
+.dg-mode {
+  padding: 5px 11px; border: 0; border-radius: 8px; cursor: pointer; background: none; color: var(--muted);
+  font: 600 12px var(--font); transition: background 0.25s, color 0.25s, box-shadow 0.25s;
+}
+.dg-mode:hover { color: var(--text); }
+.dg-mode[aria-selected='true'] {
+  color: #1d0a00; background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 60%, #fff), var(--accent));
+  box-shadow: 0 0 14px color-mix(in srgb, var(--accent) 45%, transparent);
+}
+/* The detected font glows; a forced font gets a lock badge. */
+.dg-font.forced::before {
+  content: 'forced'; position: absolute; top: -8px; right: -6px; padding: 2px 6px; border-radius: 6px;
+  font: 700 8.5px var(--font); letter-spacing: 0.1em; text-transform: uppercase; color: #1d0a00; background: var(--warm);
+}
+.dg-tile.dec .dg-face { font-family: var(--font); font-size: 22px; font-weight: 700; }
+.dg-tile.dec .dg-back b { font-family: var(--glyph); font-weight: 400; font-size: 20px; }
+.dg-card-symbols { font-family: var(--glyph); font-size: 18px; letter-spacing: 2px; color: var(--warm); }
+.dg-decoded {
+  font: 650 22px/1.45 var(--font); color: #fff; white-space: pre-wrap; word-break: break-word; user-select: text;
+  text-shadow: 0 0 14px color-mix(in srgb, var(--accent) 45%, transparent);
+}
+.dg-chip-glyphs { font-family: var(--glyph); font-size: 15px; letter-spacing: 1px; }

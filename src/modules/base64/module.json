@@ -1,0 +1,10 @@
+{
+  "id": "base64",
+  "name": "Text to Base64",
+  "description": "Watch your text split into bytes, then into 6-bit groups, and come back together as Base64, live as you type.",
+  "icon": "icon.svg",
+  "accent": "#22d3ee",
+  "entry": "index.js",
+  "style": "style.css",
+  "order": 20
+}

@@ -1,0 +1,10 @@
+{
+  "id": "esolang",
+  "name": "Esoteric Languages",
+  "description": "Turn text into Brainfuck, Ook!, Whitespace, Malbolge, Befunge or Unary programs that print it, then watch a virtual machine run them.",
+  "icon": "icon.svg",
+  "accent": "#39ff88",
+  "entry": "index.js",
+  "style": "style.css",
+  "order": 50
+}

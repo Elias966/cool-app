@@ -1,0 +1,10 @@
+{
+  "id": "dingbats",
+  "name": "Text to Dingbats",
+  "description": "Turn text into Wingdings, Webdings, Symbol or Zapf Dingbats, with a live symbol keyboard that shows what every key becomes.",
+  "icon": "icon.svg",
+  "accent": "#ff8a3d",
+  "entry": "index.js",
+  "style": "style.css",
+  "order": 30
+}

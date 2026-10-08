@@ -1,0 +1,10 @@
+{
+  "id": "ancient",
+  "name": "Ancient Scripts",
+  "description": "Carve your text into runes, hieroglyphs, Ogham, cuneiform, or Greek and Latin inscriptions, with every script side by side like the Rosetta Stone.",
+  "icon": "icon.svg",
+  "accent": "#d9a441",
+  "entry": "index.js",
+  "style": "style.css",
+  "order": 40
+}

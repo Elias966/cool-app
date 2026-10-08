@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Prism</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; media-src 'self' data: blob:" />
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "/vendor/three/build/three.module.js",
+        "three/addons/": "/vendor/three/examples/jsm/"
+      }
+    }
+  </script>
+  <link rel="stylesheet" href="core/styles.css" />
+</head>
+<body>
+  <canvas id="bg"></canvas>
+  <div class="vignette"></div>
+  <canvas id="fx"></canvas>
+  <div id="cursor-glow"></div>
+
+  <header class="titlebar">
+    <div class="brand">
+      <span class="brand-mark"><i></i><i></i><i></i><i></i><i></i><i></i></span>
+      <span class="brand-name">PRISM</span>
+      <span class="brand-crumb" id="crumb"></span>
+    </div>
+    <div class="titlebar-drag"></div>
+    <div class="win-controls">
+      <button class="win-btn" data-win="minimize" title="Minimize" aria-label="Minimize">
+        <svg viewBox="0 0 12 12"><path d="M2 6h8" /></svg>
+      </button>
+      <button class="win-btn" data-win="toggleMaximize" title="Maximize" aria-label="Maximize">
+        <svg viewBox="0 0 12 12"><rect x="2.5" y="2.5" width="7" height="7" rx="1" /></svg>
+      </button>
+      <button class="win-btn win-close" data-win="close" title="Close" aria-label="Close">
+        <svg viewBox="0 0 12 12"><path d="M3 3l6 6M9 3l-6 6" /></svg>
+      </button>
+    </div>
+  </header>
+
+  <nav class="dock" id="dock" aria-label="Modules"></nav>
+  <main class="stage" id="stage"></main>
+  <div class="toasts" id="toasts" aria-live="polite"></div>
+
+  <script type="module" src="core/app.js"></script>
+</body>
+</html>
