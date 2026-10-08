@@ -87,6 +87,7 @@ export default {
             <button class="es-mode" role="tab" data-mode="decode">program → text</button>
           </div>
           <span class="es-hint"><kbd>Enter</kbd> <span class="es-verb">compile</span> · <kbd>Shift</kbd>+<kbd>Enter</kbd> new line · <kbd>Esc</kbd> clear</span>
+          <button class="es-chip es-chip-danger es-clear" title="Clear history">clear</button>
         </div>
       </div>
     `;
@@ -567,6 +568,20 @@ export default {
         const r = btn.getBoundingClientRect();
         fx.burst(r.left + r.width / 2, r.top + r.height / 2, { count: 14, color: accent, spread: 4 });
       }
+    });
+
+    $('.es-clear').addEventListener('click', () => {
+      if (!history.length) return;
+      history = [];
+      storage.remove(HISTORY_KEY);
+      const cards = feed.querySelectorAll('.es-card');
+      cards.forEach((c, i) => {
+        c.style.animationDelay = `${i * 30}ms`;
+        c.classList.add('es-card-out');
+        c.addEventListener('animationend', () => c.remove(), { once: true });
+      });
+      setTimeout(refreshMeta, 350 + cards.length * 30);
+      scene.pulse(0.6);
     });
 
     // ----------------------------------------------------------------- input

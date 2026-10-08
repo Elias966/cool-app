@@ -59,7 +59,8 @@ build/icon.png         app icon (generated with Python, 512 px)
   (`br-`, `b64-`, `dg-`, `an-`, `es-`).
 - Each module follows the same page pattern: canvas intro effect, header,
   live preview, history feed of cards (saved in `ctx.storage`, max ~40), a
-  console with textarea + send button, and a mode switch.
+  console with textarea + send button, a mode switch, and a Clear button that
+  wipes the history (in the header for Braille, in the console bar elsewhere).
 
 ## Modules
 

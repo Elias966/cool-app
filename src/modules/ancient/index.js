@@ -92,6 +92,7 @@ export default {
           <button class="an-chip an-bous" aria-pressed="false" title="Ancient Greek: every other line runs backwards, mirrored, “as the ox turns”">Boustrophedon</button>
           <span class="an-hint"><kbd>Enter</kbd> <span class="an-verb">carve</span> · <kbd>Esc</kbd> clear · hover a glyph to read it</span>
           <span class="an-counter"></span>
+          <button class="an-chip an-chip-danger an-clear" title="Clear history">Clear</button>
         </div>
       </div>
     `;
@@ -495,6 +496,20 @@ export default {
           refreshMeta();
         }, { once: true });
       }
+    });
+
+    $('.an-clear').addEventListener('click', () => {
+      if (!history.length) return;
+      history = [];
+      storage.remove(HISTORY_KEY);
+      const cards = feed.querySelectorAll('.an-card');
+      cards.forEach((c, i) => {
+        c.style.animationDelay = `${i * 30}ms`;
+        c.classList.add('an-card-out');
+        c.addEventListener('animationend', () => c.remove(), { once: true });
+      });
+      setTimeout(refreshMeta, 450 + cards.length * 30);
+      scene.pulse(0.6);
     });
 
     // ----------------------------------------------------------------- input

@@ -103,6 +103,7 @@ export default {
           </div>
           <span class="dg-hint"><kbd>Enter</kbd> <span class="dg-verb">convert</span> · <kbd>Esc</kbd> clear · <span class="dg-kbhint">click keyboard keys to type</span></span>
           <span class="dg-counter"></span>
+          <button class="dg-chip dg-chip-danger dg-clear" title="Clear history">Clear</button>
         </div>
       </div>
     `;
@@ -457,6 +458,20 @@ export default {
           refreshMeta();
         }, { once: true });
       }
+    });
+
+    $('.dg-clear').addEventListener('click', () => {
+      if (!history.length) return;
+      history = [];
+      storage.remove(HISTORY_KEY);
+      const cards = feed.querySelectorAll('.dg-card');
+      cards.forEach((c, i) => {
+        c.style.animationDelay = `${i * 30}ms`;
+        c.classList.add('dg-card-out');
+        c.addEventListener('animationend', () => c.remove(), { once: true });
+      });
+      setTimeout(refreshMeta, 400 + cards.length * 30);
+      scene.pulse(0.6);
     });
 
     // ------------------------------------------------------------------ input

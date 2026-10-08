@@ -71,6 +71,7 @@ export default {
           </div>
           <span class="b64-hint"><kbd>Enter</kbd> <span class="b64-verb">encode</span> · <kbd>Shift</kbd>+<kbd>Enter</kbd> new line · <kbd>Esc</kbd> clear</span>
           <span class="b64-counter"></span>
+          <button class="b64-chip b64-chip-danger b64-clear" title="Clear history">Clear</button>
         </div>
       </div>
     `;
@@ -407,6 +408,20 @@ export default {
           refreshMeta();
         }, { once: true });
       }
+    });
+
+    $('.b64-clear').addEventListener('click', () => {
+      if (!history.length) return;
+      history = [];
+      storage.remove(HISTORY_KEY);
+      const cards = feed.querySelectorAll('.b64-card');
+      cards.forEach((c, i) => {
+        c.style.animationDelay = `${i * 30}ms`;
+        c.classList.add('b64-card-out');
+        c.addEventListener('animationend', () => c.remove(), { once: true });
+      });
+      setTimeout(refreshMeta, 400 + cards.length * 30);
+      scene.pulse(0.6);
     });
 
     // ------------------------------------------------------------------ input
