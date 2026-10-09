@@ -66,6 +66,11 @@ src/core/sound.js       ctx.sound: synthesized sound effects (Web Audio, no file
 electron/ai-host.mjs    background process that downloads and runs AI models
 src/modules/<id>/       built-in modules
 build/                  icon + AppImage launcher hook
+android version/        the Android app: WebView shell that runs the same src/
+scripts/                vendor.js (copies three.js into src/vendor), android.js (Android web assets)
+tests/mobile/           Playwright checks at phone and tablet sizes
+release-notes/          text for each GitHub release
+.github/workflows/      builds and publishes the AppImage and APK
 ```
 
 ## Writing a module
@@ -125,10 +130,6 @@ export default {
 | `ctx.fx.scramble(el, text)` | decode-style text reveal (returns a promise) |
 | `ctx.fx.burst(x, y, { color, count, target })` | particle sparks, optionally streaming to a point |
 | `ctx.sound.play(name, { x, ... })` | a synthesized sound effect (`x` pans it to that screen position); `ctx.sound.sequence([{ at, name }])` plays a timeline and returns `{ stop() }` |
-
-Sound comes for free with the shared effects: `burst`, `scramble`, `scene.pulse` and `scene.warp` play matching sounds (pass `silent: true` to `burst`/`scramble` to skip them), and the shell adds sounds for clicks, hovers, typing and navigation. The presets live in `src/core/sound.js`.
-
-On phones and tablets (`ctx.sound.handheld` is true) the same sounds are re-voiced for small speakers and key moments also buzz (`ctx.sound.haptic('tick' | 'press' | 'heavy' | 'success' | 'error')`); modules don't need to do anything. Modules also run in the Android app, so their CSS should end with a small "phones and tablets" section using the shared breakpoints listed in `HANDOFF.md` (Android app → Responsive CSS).
 | `ctx.toast(message)` | notification pill |
 | `ctx.storage.get/set/remove(key)` | JSON storage kept separate for each module |
 | `ctx.navigate(id)` | go to another module (or `'home'`) |
@@ -136,9 +137,36 @@ On phones and tablets (`ctx.sound.handheld` is true) the same sounds are re-voic
 | `ctx.ai.load(spec, { onProgress })` | download (first time) and load a Hugging Face ONNX model, e.g. `{ model: 'onnx-community/Qwen2.5-1.5B-Instruct', dtype: 'q4f16' }` |
 | `ctx.ai.generate(spec, { messages, prefill }, { onToken })` | stream text from the local model; returns `{ done, cancel }` |
 
+Sound comes for free with the shared effects: `burst`, `scramble`, `scene.pulse`
+and `scene.warp` play matching sounds (pass `silent: true` to `burst`/`scramble`
+to skip them), and the shell adds sounds for clicks, hovers, typing and
+navigation. The presets live in `src/core/sound.js`. On phones and tablets
+(`ctx.sound.handheld` is true) the same sounds are re-voiced for small speakers
+and key moments also buzz (`ctx.sound.haptic('tick' | 'press' | 'heavy' |
+'success' | 'error')`); modules don't need to do anything.
+
 Prefix your CSS classes (as the braille module does with `br-`) so modules don't
 clash. The shell's CSS variables (`--accent`, `--text`, `--muted`, `--glass`,
-`--line`, `--ease-out`, …) are available for a consistent look.
+`--line`, `--ease-out`, …) are available for a consistent look. Entrance
+animations should use `backwards` fill (not `forwards`/`both`), or they lock
+`transform` and break the hover tilt.
+
+**Phones and tablets.** Modules also run in the Android app, so each module's
+CSS ends with a "phones and tablets" section. All modules use the same
+breakpoints, and the desktop layout stays untouched:
+
+| Case | Media query |
+| --- | --- |
+| Phone (portrait) | `(max-width: 599px), (max-width: 760px) and (orientation: portrait)` |
+| Landscape phone | `(max-height: 520px) and (min-width: 600px)` |
+| Stacked (one column) | `(max-width: 1000px) and (hover: none), (max-width: 760px), (max-height: 520px) and (min-width: 600px)` |
+| Keyboard open | `(max-width: 760px) and (orientation: portrait) and (max-height: 560px)` |
+| Touch targets | `(pointer: coarse)` |
+
+`body.handheld` is set on touch devices (hide keyboard-only hints under it) and
+`body.platform-android` inside the app. Text inputs need a font size of at
+least 16px on phones. `tests/mobile/` has Playwright scripts that screenshot
+every module at phone and tablet sizes.
 
 ## Text to Braille
 
@@ -198,7 +226,7 @@ is kept between sessions.
 ## Text to Base64
 
 - Encodes text to Base64 (RFC 4648). Text is turned into UTF-8 bytes first, so
-  any language and emoji work. It encodes only; there's no decoding.
+  any language and emoji work. It decodes too (see *Decode modes* below).
 - A live pipeline shows the first 9 bytes as you type: each byte (8 bits), the
   same bits regrouped into 6-bit groups, and the character each group becomes.
   Added zero bits and `=` padding are marked.
@@ -273,6 +301,12 @@ others have a switch in their console bar:
   virtual machine runs it, and you read its output. The Whitespace and Befunge
   interpreters support their full instruction sets. Programs run for at most
   3,000,000 steps, so endless loops are caught.
+- **Layers → Text:** *My chain* undoes the current chain exactly; *Auto-peel*
+  works out an unknown chain by itself (see Layered Encoding).
+- **日本語 → Text:** detects which of the five styles was used (click a style to
+  force it) and reads real kana back as Hepburn romaji.
+- **Cipher Pact → Read:** paste a friend's message and it finds the right key
+  in your key ring, or type the key code they gave you.
 
 ## Esoteric Languages
 
@@ -290,3 +324,69 @@ others have a switch in their console bar:
 - Malbolge limit: without jumps it can only reach 201 of the 256 byte values,
   which covers all of ASCII but not the bytes UTF-8 needs, so accents are
   dropped and other non-ASCII characters become "?" (the app says so).
+
+## Layered Encoding
+
+- Stacks up to 8 reversible encodings on one string, in any order: **Base64**,
+  **Base32**, **Ascii85**, **Hex**, **Binary**, **Percent**, **HTML entities**,
+  **Unicode escapes**, **ROT13**, **ROT47**, **Atbash**, **Reverse** and
+  **Fullwidth**.
+- Build the chain in the side panel: click tiles to add layers, drag (or use
+  ↑ ↓) to reorder, pick a preset, or **Shuffle** for a random order and depth.
+- Decoding has two modes. *My chain* undoes your chain exactly. *Auto-peel*
+  takes text encoded with an unknown chain and searches for the layers that
+  make it readable again. It recovers about 98% of random chains up to 5
+  layers deep; the misses are cases with no single answer, such as very short
+  or reversed CJK text.
+
+## Japanese Scripts
+
+- Writes text in five styles: **Katakana** (English turned into loanword
+  katakana, with a dictionary of real loanwords and spelling rules for the
+  rest), **Hiragana** (a letter cipher), **Romaji mix** (romaji syllables
+  become kana, other words stay Latin), **Hankaku** (halfwidth katakana) and
+  **Kanji-look** (look-alike kanji).
+- Furigana (reading aids above the characters) and vertical writing
+  (tategaki) can be switched on.
+- Katakana decoding gives back known English words and romaji for the rest, so
+  it is approximate; the cipher styles decode exactly.
+- Bundles cut-down Noto Sans JP and Noto Serif JP fonts (SIL Open Font License).
+
+## Cipher Pact
+
+- A private cipher between you and a friend. Every message gets a new key
+  code (like `VIOLET-MAMMOTH-508`, about 2 million combinations), and the
+  code alone decides a brand-new random alphabet of symbols (runes, shapes,
+  emoji and more).
+- **Make:** *Forge* spins the vault wheel while the local AI writes a short
+  lesson note in one of ten formats (pirate note, spy briefing, treasure
+  map…). Then type your secret and *Seal* it into the note. The AI never sees
+  the alphabet or your secret; the clues and a warm-up word are added by the
+  app and never use letters of the secret. Without the AI, a built-in note is
+  used.
+- **Message styles:** 🔑 *Clues* (the key is sent separately, the most
+  private), or one of four styles that put the key inside the message so your
+  friend can read it straight away (🔤 letter code, 🍎 word swap, 🔢 number map,
+  🟢 emoji words). 🎲 *Surprise* picks one for each message.
+- **Read:** paste a message; Prism finds the key in your key ring, or uses the
+  code your friend gave you.
+- **Practice:** flashcards for learning an alphabet by heart, with a streak and
+  per-symbol progress.
+- Key cards can be copied as an image, saved as PNG or copied as text.
+
+## Sound
+
+Every sound is synthesized live with the Web Audio API; there are no audio
+files. Notes come from one pentatonic scale, so overlapping sounds stay in
+tune, and each sound is panned to where its animation happens. Each module
+has its own intro sequence and signature sounds (braille dot chimes, carved
+glyphs, a koto in Japanese Scripts, the vault wheel in Cipher Pact). The
+speaker button in the title bar has the volume, sound on/off and typing
+clicks (plus vibration on Android); the settings are remembered.
+
+## Where data lives
+
+- **Linux:** `~/.config/Prism/` holds history, settings and downloaded AI
+  models (`models/`). User modules go in `~/.config/Prism/modules/`. AI
+  models are only downloaded when you first open an AI mode.
+- **Android:** inside the app's own storage; uninstalling removes it.
