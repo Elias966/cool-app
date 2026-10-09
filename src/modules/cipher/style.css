@@ -528,23 +528,26 @@
 }
 
 @media (max-width: 599px), (max-width: 760px) and (orientation: portrait) {
-  .cp { --cp-rest: 268px; gap: 10px; padding: 12px 14px 16px; }
+  .cp { --cp-rest: 356px; gap: 10px; padding: 12px 14px 16px; }
+  .cp[data-mode='read'] { --cp-rest: 310px; }
+  .cp[data-mode='practice'] { --cp-rest: 248px; }
+  .cp:has(.cp-ai:not([data-state='idle'], [data-state='ready'], [data-state='offline'])) { --cp-rest: 400px; }
   .cp-badge { display: none; } /* the title bar already says where you are */
   .cp-title { margin: 2px 0 3px; font-size: 28px; }
   .cp-sub { font-size: 12.5px; line-height: 1.4; }
   .cp-head { gap: 8px; }
   .cp-head-main { flex: 1 1 100%; }
   .cp-ai { flex: 1 1 100%; max-width: none; padding: 6px 12px; border-radius: 12px; font-size: 11.5px; }
-  .cp-ai[data-state='idle'] { display: none; } /* shows once the AI has something to say */
+  .cp-ai:is([data-state='idle'], [data-state='ready'], [data-state='offline']) { display: none; } /* only while busy or failing */
   /* vault: smaller wheel on top, key line, buttons and key ring below */
   .cp-vault { display: flex; padding: 10px 12px 14px; }
   .cp-wheel { scale: 0.78; margin: -33px; }
   .cp-keyline { flex-wrap: wrap; }
   .cp-code { font-size: 13px; }
   /* practice: flip card beside the scores, mastery grid below */
-  .cp-practice { grid-template-columns: 150px minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); gap: 12px; padding: 4px 0 0; }
+  .cp-practice { grid-template-columns: 136px minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); gap: 12px; padding: 4px 0 0; }
   .cp-flip-wrap { grid-row: auto; }
-  .cp-flip { width: 150px; height: 196px; }
+  .cp-flip { width: 136px; height: 178px; }
   .cp-face { border-radius: 18px; gap: 8px; }
   .cp-face b { font-size: 76px; }
   .cp-face small { font-size: 9.5px; letter-spacing: 0.14em; }
@@ -568,23 +571,23 @@
   .cp-readsecret { padding: 10px 12px; font-size: 20px; }
   .cp-lesson-label:not(:first-child) { margin-left: 4px; }
   .cp-card-actions [data-act='delete'] { margin-left: 0; }
-  /* console: the bar wraps into rows (modes, styles, field + clear) */
+  /* console: the bar wraps into rows: modes + clear, styles, the field, the counter */
   .cp-console { padding: 8px 12px 10px 14px; border-radius: 20px; }
   .cp-live { font-size: 16px; }
   .cp-inputrow { gap: 10px; }
   .cp-input { min-height: 44px; max-height: 110px; padding: 10px 2px; }
   .cp-send { height: 46px; padding: 0 16px; gap: 8px; font-size: 14px; }
   .cp-bar { gap: 8px; margin-top: 6px; }
-  .cp-modes { display: flex; flex: 1 1 100%; }
+  .cp-modes { display: flex; flex: 1 1 auto; order: 1; }
   .cp-mode { flex: 1; }
-  .cp-stylepick, .cp[data-mode='make'] .cp-stylepick { display: none; flex: 1 1 100%; }
-  .cp[data-mode='make'] .cp-stylepick { display: flex; }
-  .cp-stylepick button { flex: 1 1 0; min-width: 0; width: auto; }
-  .cp-stylename { flex: none; max-width: 112px; overflow: hidden; text-overflow: ellipsis; }
-  .cp-field { flex: 1 1 150px; min-width: 0; }
+  .cp-bar .cp-clear { order: 2; }
+  .cp[data-mode='make'] .cp-stylepick { display: flex; flex: 1 1 100%; order: 3; }
+  .cp-stylepick button { flex: none; width: 36px; }
+  .cp-stylename { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+  .cp-field { flex: 1 1 100%; order: 4; min-width: 0; }
   .cp-field input, .cp-field-key input { flex: 1; width: 0; min-width: 0; }
-  .cp-counter { margin-left: 0; }
-  .cp-bar .cp-clear { margin-left: auto; }
+  .cp-counter { flex: 1 1 100%; order: 5; margin: -2px 0 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+  .cp-counter:empty { display: none; }
 }
 /* Landscape phones: short screens, so the head shrinks to one line. */
 @media (max-height: 520px) and (min-width: 600px) {

@@ -507,7 +507,8 @@ export default {
       $('.jp-sub').innerHTML = mode === 'encode'
         ? 'Write anything in <b>katakana</b>, <b>hiragana</b>, code-rain <b>ﾊﾝｶｸ</b> or look-alike <b>漢字</b>.'
         : 'Paste Japanese-style text: the style is <b>detected</b>, and any kana reads back as <b>romaji</b>.';
-      input.placeholder = mode === 'encode' ? 'Type text to write in Japanese and press Enter…' : 'Paste kana, ﾊﾝｶｸ or 漢字風 text and press Enter…';
+      const enter = document.body.classList.contains('handheld') ? '' : ' and press Enter'; // no Enter key hint on touch screens
+      input.placeholder = mode === 'encode' ? `Type text to write in Japanese${enter}…` : `Paste kana, ﾊﾝｶｸ or 漢字風 text${enter}…`;
       input.setAttribute('aria-label', mode === 'encode' ? 'Text to convert' : 'Japanese text to read');
       sendBtn.querySelector('span').textContent = mode === 'encode' ? 'Convert' : 'Read';
       sendBtn.setAttribute('aria-label', mode === 'encode' ? 'Convert to Japanese' : 'Read back as text');

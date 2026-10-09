@@ -347,3 +347,76 @@
   .jp-scroll { max-height: 140px; }
   .jp-vertical .jp-scroll { height: 140px; }
 }
+
+/* ------------------------------------------------- phones and tablets */
+/* Touch: finger-sized chips, style cards and chart cells; sticky hovers stay put. */
+@media (pointer: coarse) {
+  .jp-chip, .jp-mode { min-height: 38px; }
+  .jp-card-actions .jp-chip, .jp-bar .jp-clear, .jp-toggle { padding: 8px 13px; }
+  .jp-style { min-height: 46px; }
+  .jp-cell { min-height: 44px; }
+  .jp-chip:hover, .jp-cell:hover { transform: none; }
+}
+.handheld .jp-hint { display: none; }
+
+/* Stacked: one scrolling column. The main grid and its left column dissolve so
+   the pieces can be reordered: head, feed, console, paper scroll, style + chart. */
+@media (max-width: 1000px) and (hover: none), (max-width: 760px), (max-height: 520px) and (min-width: 600px) {
+  .jp { overflow: hidden auto; gap: 12px; padding: 14px 14px 18px; }
+  .jp > *, .jp-scroll, .jp-feed, .jp-side { flex: none; }
+  .jp-main, .jp-left { display: contents; }
+  .jp:not(.jp-ready) :is(.jp-scroll, .jp-feed, .jp-side) { opacity: 0; }
+  .jp-head { order: 0; }
+  .jp-feed { order: 1; height: clamp(200px, 100svh - 510px, 560px); }
+  .jp-feed:has(> .jp-empty:not([hidden])) { height: auto; } /* nothing yet: just the samples */
+  .jp-console { order: 2; }
+  .jp-scroll { order: 3; }
+  .jp-side { order: 4; overflow: visible; padding-right: 0; }
+  .jp-chart { overflow: visible; }
+  .jp-badge { display: none; } /* the title bar already says where you are */
+  .jp-head { gap: 10px; }
+  .jp-head-main { flex: 1 1 0; min-width: 0; }
+  .jp-title { margin: 2px 0 6px; font-size: 30px; }
+  .jp-sub { font-size: 12.5px; line-height: 1.5; }
+  .jp-emblem { display: block; width: 300px; height: 118px; zoom: 0.46; align-self: flex-start; margin: 8px 4px 0 0; } /* the emblem shrinks beside the title */
+  .jp-empty { min-height: 0; padding: 18px 0 6px; }
+  .jp-card { padding: 13px 14px 11px; border-radius: 18px; }
+  .jp-card-head { flex-direction: column; gap: 4px; }
+  .jp-out { font-size: 21px; }
+  .jp-scroll-text { font-size: 22px; }
+  .jp-console { padding: 10px 12px 10px 16px; border-radius: 20px; }
+  .jp-input { font-size: 16px; }
+  .jp-inputrow { gap: 10px; }
+  .jp-send { width: 50px; padding: 0; justify-content: center; }
+  .jp-send span { display: none; }
+  .jp-bar { gap: 8px 10px; }
+}
+/* Tablets and landscape phones are wide enough for styles and chart side by side. */
+@media (min-width: 600px) and (max-width: 1000px) and (hover: none), (min-width: 600px) and (max-width: 760px), (max-height: 520px) and (min-width: 600px) {
+  .jp-side { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: start; }
+}
+/* Portrait phones: the direction switch gets a row of its own. */
+@media (max-width: 599px), (max-width: 760px) and (orientation: portrait) {
+  .jp-modes { flex: 1 1 100%; }
+  .jp-mode { flex: 1; }
+  .jp-counter { display: none; } /* the card meta repeats it */
+  .jp-clear { margin-left: auto; }
+  .jp-style-sample { display: none; }
+}
+@media (max-width: 760px) and (orientation: portrait) and (max-height: 700px) {
+  .jp-sub { display: none; } /* small phones: feed and console come first */
+}
+/* Landscape phones: a one-line head and a feed that leaves room for the console. */
+@media (max-height: 520px) and (min-width: 600px) {
+  .jp-sub { display: none; }
+  .jp-head { align-items: center; }
+  .jp-title { font-size: 24px; margin: 0; }
+  .jp-emblem { zoom: 0.3; }
+  .jp-feed { height: clamp(160px, 100svh - 230px, 400px); }
+}
+/* The keyboard is open: keep the feed and the text box, drop the rest. */
+@media (max-width: 760px) and (orientation: portrait) and (max-height: 560px) {
+  .jp { overflow: clip; }
+  .jp-head, .jp-scroll, .jp-side { display: none; }
+  .jp-feed, .jp-feed:has(> .jp-empty:not([hidden])) { flex: 1 1 0; min-height: 0; height: auto; }
+}

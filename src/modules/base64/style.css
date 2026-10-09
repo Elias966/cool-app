@@ -355,18 +355,18 @@
   .b64-bar { gap: 8px; margin-top: 6px; }
   .b64-modes { flex: 1 1 100%; display: grid; grid-template-columns: 1fr 1fr; }
   .b64-toggle { padding: 6px 11px; }
+  .b64-bar:has(.b64-toggles:not([hidden])) .b64-counter { display: none; } /* no room next to the toggles */
+  .b64-clear { margin-left: auto; }
 }
 /* Portrait phones: the console sits right under the pipeline so both show without scrolling;
    the history follows and fills what is left. */
 @media (max-width: 599px), (max-width: 760px) and (orientation: portrait) {
   .b64-console { order: 1; }
   .b64-feed { order: 2; }
-  .b64-bar:has(.b64-toggles:not([hidden])) .b64-counter { display: none; } /* no room next to the toggles */
-  .b64-clear { margin-left: auto; }
 }
 /* Landscape phones: pipeline on the left, feed and console on the right. */
 @media (max-height: 520px) and (min-width: 600px) {
-  .b64 { display: grid; grid-template: auto minmax(0, 1fr) auto / minmax(0, 300px) minmax(0, 1fr); gap: 10px 14px; overflow: clip; }
+  .b64 { display: grid; grid-template: auto minmax(0, 1fr) auto / minmax(0, 280px) minmax(0, 1fr); gap: 10px 12px; padding: 10px 12px; overflow: clip; }
   .b64-sub { display: none; }
   .b64-title { margin: 0; font-size: 24px; }
   .b64-head { grid-area: 1 / 1; }
@@ -375,7 +375,10 @@
   .b64-console { grid-area: 3 / 2; }
   .b64-live { display: none; } /* the pipeline beside it already shows the text as it encodes */
   .b64-inputrow { margin-top: 0; }
+  .b64-bar { gap: 6px; }
   .b64-modes { flex: 0 1 auto; }
+  .b64-mode { padding: 6px 9px; font-size: 11.5px; }
+  .b64-toggle, .b64-clear { padding: 6px 9px; }
 }
 /* The keyboard is open: keep the text box and the feed, drop the rest. */
 @media (max-width: 760px) and (orientation: portrait) and (max-height: 560px) {
