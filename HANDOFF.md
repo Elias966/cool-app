@@ -11,7 +11,8 @@ hosts **modules**: self-contained pages discovered at startup. Eight modules
 exist, each translating text both ways with heavy visual effects.
 
 - Project: `/home/theking/cool-app` (not a git repo yet)
-- Build output: `dist/Prism-1.0.0-x86_64.AppImage` (~138 MB)
+- Build output: `dist/Prism-1.1.0-x86_64.AppImage` (~144 MB). Version 1.1.0 =
+  Layered Encoding, Japanese Scripts, Cipher Pact, Clear buttons and sound.
 - Target: Ubuntu-family (the user's machine is Zorin OS / GNOME on X11) and Arch
 
 ## Run and build
@@ -30,6 +31,9 @@ npm run dist     # build the AppImage (also runs scripts/vendor.js first)
   drops any `examples/` folder inside `node_modules`.
 - Electron 44.7, electron-builder 26.15, three 0.186, @huggingface/transformers 4.3.1.
 - DevTools: F12 or Ctrl+Shift+I. Ctrl+R reloads. Esc returns home.
+- If `npm ci` fails in `onnxruntime-node`'s postinstall (it downloads optional
+  CUDA libraries, which the build excludes anyway), install with
+  `ONNXRUNTIME_NODE_INSTALL=skip npm ci`; the CPU runtime is in the package.
 
 ## Architecture
 
@@ -212,7 +216,7 @@ where its animation is; fast repeats are throttled per preset (`THROTTLE`).
   icon to `~/.local/share/icons/hicolor/512x512/apps/prism.png`. `Icon=` is an
   **absolute path** because the user's stale `icon-theme.cache` hid the icon
   (dock showed a gear).
-- Portable mode: a folder named `Prism-1.0.0-x86_64.AppImage.config` next to
+- Portable mode: a folder named `Prism-1.1.0-x86_64.AppImage.config` next to
   the AppImage makes all data (models, history) live there.
 
 ## Where data lives

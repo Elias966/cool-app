@@ -11,8 +11,8 @@ It ships with eight modules: **Text to Braille**, **Text to Base64**, **Text to 
 ## Run the AppImage
 
 ```bash
-chmod +x dist/Prism-1.0.0-x86_64.AppImage
-./dist/Prism-1.0.0-x86_64.AppImage
+chmod +x dist/Prism-1.1.0-x86_64.AppImage
+./dist/Prism-1.1.0-x86_64.AppImage
 ```
 
 The AppImage uses the static type 2 runtime (`build.toolsets.appimage: "1.0.3"`),
@@ -176,7 +176,7 @@ The module translates in both directions. Use the switch in its header to pick
 - **Where it's stored:** an AppImage is read-only, so the model goes in the
   app's data folder, `~/.config/Prism/models/`. To keep everything next to the
   AppImage instead (portable mode), create a folder named
-  `Prism-1.0.0-x86_64.AppImage.config` beside the AppImage before starting it.
+  `Prism-1.1.0-x86_64.AppImage.config` beside the AppImage before starting it.
   All app data, including the model and history, then lives in that folder.
 
 In both modes, press `Enter` or **Send** to translate and `Esc` to clear the box;

@@ -1,8 +1,8 @@
 {
   "name": "prism-hub",
   "productName": "Prism",
-  "version": "1.0.0",
-  "description": "A modular, 3D-styled desktop workspace. Ships with a Text to Braille module.",
+  "version": "1.1.0",
+  "description": "A modular, 3D-styled desktop workspace with eight text modules: braille, Base64, dingbats, ancient and Japanese scripts, esoteric languages, layered encoding and a private cipher.",
   "author": "theking <animemonster999@gmail.com>",
   "license": "MIT",
   "main": "electron/main.js",
