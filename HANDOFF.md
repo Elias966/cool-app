@@ -7,7 +7,7 @@ user-facing description, this file is for whoever works on the code next.
 
 **Prism** is a modular Electron desktop app, shipped as a Linux AppImage. A
 three.js 3D background plus a shell (dock, home launcher, page transitions)
-hosts **modules**: self-contained pages discovered at startup. Seven modules
+hosts **modules**: self-contained pages discovered at startup. Eight modules
 exist, each translating text both ways with heavy visual effects.
 
 - Project: `/home/theking/cool-app` (not a git repo yet)
@@ -56,7 +56,7 @@ build/icon.png         app icon (generated with Python, 512 px)
   whose default export is `{ mount(root, ctx) }`; `mount` returns a cleanup
   function. `ctx` = `{ meta, scene, fx, toast, ai, storage, navigate, url }`.
   `storage` is namespaced localStorage per module. Prefix module CSS classes
-  (`br-`, `b64-`, `dg-`, `an-`, `es-`, `ly-`, `jp-`).
+  (`br-`, `b64-`, `dg-`, `an-`, `es-`, `ly-`, `jp-`, `cp-`).
 - Each module follows the same page pattern: canvas intro effect, header,
   live preview, history feed of cards (saved in `ctx.storage`, max ~40), a
   console with textarea + send button, a mode switch, and a Clear button that
@@ -73,6 +73,7 @@ build/icon.png         app icon (generated with Python, 512 px)
 | Esoteric Languages | `esolang/` | text→program, program→text (runs it) | `esolangs.js` |
 | Layered Encoding | `layers/` | text→layers, layers→text (Auto-peel or My chain) | `layers.js` |
 | Japanese Scripts | `japanese/` | text→日本語 (5 styles), 日本語→text (style auto-detect, romaji) | `japanese.js` |
+| Cipher Pact | `cipher/` | Make (AI lesson + sealed secret), Read, Practice | `cipher.js`, `cipher-ai.js` |
 
 Notes per module:
 
@@ -135,6 +136,25 @@ Notes per module:
   `noto-serif-jp` 5.3.0 npm packages: fontTools subset of each `*-400/700/900`
   woff2 piece, merged with `fontTools.merge`. Any new kanji in the UI must be
   added the same way, or it falls back to a system font.
+- **Cipher Pact:** a private cipher between the user and a friend. Every
+  forged message gets a new key code (`ADJ-NOUN-123`, ~2M combinations); the
+  code alone seeds the alphabet (`keyFor()`: hash → mulberry32 → random theme
+  of 9 → shuffle onto a–z0–9), so any text also works as a shared passphrase.
+  Flow: Forge (wheel spins, the local AI streams a lesson note in one of 10
+  formats) → the user types the secret → Seal. The model never sees the
+  alphabet or the secret; clues (3 letters) and a warm-up word are added by
+  code and never use letters of the secret (`lessonFor()`). Typing the secret
+  before forging seals it automatically once the note is done. Without the AI
+  (or on error) a built-in note is typed out instead. Read mode finds the key
+  in the key ring by symbol coverage + the clue line (`findKey()`), or uses a
+  typed code. Practice mode: flashcards with per-key mastery. Key card: copy
+  as image (ClipboardItem), save as PNG, or copy as text. The AI model comes
+  from `braille/ai-modes.js` (`AI_SPEC`, re-exported by `cipher-ai.js`).
+  Fonts in `cipher/fonts/` are cut from the Runic, Symbols, Symbols 2 and Math
+  fonts already in `ancient/` and `dingbats/`, plus `@fontsource/noto-color-emoji`
+  (SVG table dropped, so it is a monochrome fallback; systems with a colour
+  emoji font use that). Changing a theme's symbol list changes the alphabet of
+  every existing code, so old messages would no longer decode.
 
 ## Packaging details (each one fixed a real problem)
 

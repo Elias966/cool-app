@@ -1,0 +1,10 @@
+{
+  "id": "cipher",
+  "name": "Cipher Pact",
+  "description": "A private cipher with your friend: every message gets a brand-new random alphabet, the local AI writes a lesson note, and you seal your secret in it. Read and practice modes included.",
+  "icon": "icon.svg",
+  "accent": "#5b8cff",
+  "entry": "index.js",
+  "style": "style.css",
+  "order": 80
+}
