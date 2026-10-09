@@ -52,6 +52,7 @@ src/core/scene.js       three.js background (stars, core artifact, grid, bloom)
 src/core/fx.js          reusable effects: tilt, magnetic, ripple, scramble, burst
 src/core/home.js        launcher page
 src/core/ai.js          ctx.ai: local text generation for modules
+src/core/sound.js       ctx.sound: synthesized sound effects (Web Audio, no files)
 electron/ai-host.mjs    background process that downloads and runs AI models
 src/modules/<id>/       built-in modules
 build/                  icon + AppImage launcher hook
@@ -113,6 +114,9 @@ export default {
 | `ctx.fx.magnetic(el)`, `ctx.fx.ripple(el)` | pointer effects |
 | `ctx.fx.scramble(el, text)` | decode-style text reveal (returns a promise) |
 | `ctx.fx.burst(x, y, { color, count, target })` | particle sparks, optionally streaming to a point |
+| `ctx.sound.play(name, { x, ... })` | a synthesized sound effect (`x` pans it to that screen position); `ctx.sound.sequence([{ at, name }])` plays a timeline and returns `{ stop() }` |
+
+Sound comes for free with the shared effects: `burst`, `scramble`, `scene.pulse` and `scene.warp` play matching sounds (pass `silent: true` to `burst`/`scramble` to skip them), and the shell adds sounds for clicks, hovers, typing and navigation. The presets live in `src/core/sound.js`.
 | `ctx.toast(message)` | notification pill |
 | `ctx.storage.get/set/remove(key)` | JSON storage kept separate for each module |
 | `ctx.navigate(id)` | go to another module (or `'home'`) |

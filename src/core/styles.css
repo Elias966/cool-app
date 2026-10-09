@@ -243,3 +243,29 @@ button { font: inherit; color: inherit; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; animation-delay: 0ms !important; transition-duration: 0.01ms !important; }
 }
+
+/* ------------------------------------------------------------ sound control */
+.sound-ctl { position: relative; height: 100%; -webkit-app-region: no-drag; }
+.sound-btn svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.sound-btn .spk { fill: currentColor; fill-opacity: 0.25; }
+.sound-btn .x { display: none; }
+.sound-btn[data-level='0'] :is(.w1, .w2, .w3) { display: none; }
+.sound-btn[data-level='0'] .x { display: inline; }
+.sound-btn[data-level='1'] :is(.w2, .w3) { display: none; }
+.sound-btn[data-level='2'] .w3 { display: none; }
+.sound-pop {
+  position: absolute; top: calc(100% + 6px); right: 0; width: 230px; padding: 12px 14px; border-radius: 14px; z-index: 60;
+  background: rgba(14, 16, 32, 0.96); border: 1px solid var(--line-strong); backdrop-filter: blur(16px);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5), 0 0 30px color-mix(in srgb, var(--accent) 15%, transparent);
+  animation: soundPop 0.25s var(--ease-out);
+}
+.sound-pop[hidden] { display: none; }
+@keyframes soundPop { from { opacity: 0; transform: translateY(-6px) scale(0.97); } }
+.sound-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 12px; color: var(--muted); }
+.sound-pct { font-family: var(--mono); color: var(--text); }
+.sound-pop input[type='range'] { width: 100%; margin: 8px 0 12px; accent-color: var(--accent); }
+.sound-chip {
+  flex: 1; padding: 6px 8px; border-radius: 9px; border: 1px solid var(--line-strong); background: rgba(255, 255, 255, 0.04);
+  font-size: 11.5px; cursor: pointer; color: var(--muted); transition: background 0.2s, color 0.2s, border-color 0.2s;
+}
+.sound-chip[aria-pressed='true'] { color: #fff; background: color-mix(in srgb, var(--accent) 22%, transparent); border-color: color-mix(in srgb, var(--accent) 55%, transparent); }

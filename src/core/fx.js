@@ -1,5 +1,8 @@
 // Reusable interaction effects, handed to every module as `ctx.fx`.
-// Each binder returns a cleanup function.
+// Each binder returns a cleanup function. Bursts and scrambles also make their
+// matching sound (core/sound.js), so every module gets them for free.
+
+import { sound } from './sound.js';
 
 const BRAILLE_GLYPHS = '⠁⠃⠉⠙⠑⠋⠛⠓⠊⠚⠅⠇⠍⠝⠕⠏⠟⠗⠎⠞⠥⠧⠺⠭⠽⠵⠿⠷⠾⠮';
 const GLYPHS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789#$%&*+=<>/\\' + BRAILLE_GLYPHS;
@@ -71,8 +74,12 @@ export function ripple(el) {
   return () => el.removeEventListener('pointerdown', down);
 }
 
-/** Decode-style text reveal. Resolves when finished. */
-export function scramble(el, text, { duration = 900, glyphs = GLYPHS } = {}) {
+/** Decode-style text reveal. Resolves when finished. `silent` skips the ticking sound. */
+export function scramble(el, text, { duration = 900, glyphs = GLYPHS, silent = false } = {}) {
+  if (!silent && el.isConnected) {
+    const r = el.getBoundingClientRect();
+    sound.scramble(duration, r.left + r.width / 2);
+  }
   return new Promise((resolve) => {
     const chars = Array.from(text);
     const start = performance.now();
@@ -148,8 +155,9 @@ function tick() {
 /**
  * Throw sparks from (x, y). Pass `target: {x, y}` to make them stream there.
  */
-export function burst(x, y, { count = 28, color = getAccent(), spread = 7, target = null } = {}) {
+export function burst(x, y, { count = 28, color = getAccent(), spread = 7, target = null, silent = false } = {}) {
   ensureCanvas();
+  if (!silent) sound.play('sparkle', { count, x });
   const colors = [color, '#ffffff', color];
   for (let i = 0; i < count; i++) {
     const a = Math.random() * Math.PI * 2;

@@ -112,11 +112,13 @@ export default {
       const r = el.getBoundingClientRect();
       fx.burst(r.left + r.width / 2, r.top + r.height / 2, { color: accent, ...opts });
     };
-    const shake = () =>
-      consoleEl.animate(
+    const shake = () => {
+      ctx.sound.play('error');
+      return consoleEl.animate(
         [{ translate: '0' }, { translate: '-10px' }, { translate: '8px' }, { translate: '-5px' }, { translate: '3px' }, { translate: '0' }],
         { duration: 450, easing: 'ease-in-out' }
       );
+    };
 
     // ---------------------------------------------------------- 3D tower
     // The chain drawn as floating slabs in the header, first layer at the bottom.
@@ -363,7 +365,8 @@ export default {
         last?.classList.add('ly-link-new');
         const c = (last || chainEl).getBoundingClientRect();
         const color = layerById(t.dataset.id).color;
-        fx.burst(r.left + r.width / 2, r.top + r.height / 2, { count: 26, color, spread: 5, target: { x: c.left + c.width / 2, y: c.top + c.height / 2 } });
+        fx.burst(r.left + r.width / 2, r.top + r.height / 2, { count: 26, color, spread: 5, target: { x: c.left + c.width / 2, y: c.top + c.height / 2 }, silent: true });
+        ctx.sound.play('drop', { pitch: 0.8 + chain.length * 0.1, x: r.left });
         scene.pulse(0.5);
       });
     });
@@ -373,6 +376,7 @@ export default {
       cleanups.push(fx.ripple(b));
       b.addEventListener('click', () => {
         setChain(PRESETS[b.dataset.i].chain);
+        chain.forEach((_, i) => setTimeout(() => alive && ctx.sound.play('pluck', { note: i * 2 }), i * 45));
         chainEl.querySelectorAll('.ly-link').forEach((li) => li.classList.add('ly-link-new'));
         burstAt(b, { count: 18, spread: 4 });
         scene.pulse(0.7);
@@ -384,12 +388,15 @@ export default {
       while (next.join() === chain.join());
       setChain(next);
       chainEl.querySelectorAll('.ly-link').forEach((li) => li.classList.add('ly-link-new'));
+      ctx.sound.play('shuffle');
+      next.forEach((_, i) => setTimeout(() => alive && ctx.sound.play('pluck', { note: i * 2 + 1 }), 120 + i * 45));
       burstAt(e.currentTarget, { count: 22, spread: 5 });
       scene.pulse(0.8);
     });
     $('.ly-empty-chain').addEventListener('click', () => {
       if (!chain.length) return;
       setChain([]);
+      ctx.sound.play('swish', { up: false });
       scene.pulse(0.4);
     });
     cleanups.push(fx.ripple($('.ly-shuffle')), fx.ripple($('.ly-empty-chain')));
@@ -594,7 +601,10 @@ export default {
         fx.burst(b.left + b.width / 2, b.top + b.height / 2, { count: 24, color: accent, spread: 6 });
         // One burst per layer, each in that layer's colour.
         entryChain.forEach((id, i) =>
-          setTimeout(() => fx.burst(b.left + b.width / 2, b.top + b.height / 2, { count: 16, color: layerById(id).color, spread: 12, target: { x: c.left + c.width / 2, y: c.top + 60 } }), i * 70)
+          setTimeout(() => {
+            fx.burst(b.left + b.width / 2, b.top + b.height / 2, { count: 16, color: layerById(id).color, spread: 12, target: { x: c.left + c.width / 2, y: c.top + 60 }, silent: true });
+            ctx.sound.play('pluck', { note: i * 2, x: b.left });
+          }, i * 70)
         );
       });
       consoleEl.animate(
@@ -720,6 +730,15 @@ export default {
     // ---------------------------------------------------------------- intro
     root.classList.add('ly-intro-on');
     const intro = playSlabs($('.ly-intro'), accent);
+    // Sound: each slab slams onto the stack (in step with the animation), then the stack splits apart.
+    const introSfx = ctx.sound.sequence([
+      { at: 0, name: 'swish', up: false },
+      ...[0, 1, 2, 3, 4, 5].map((i) => ({ at: 420 + i * 150, name: 'drop', pitch: 0.8 + i * 0.12 })),
+      { at: 1470, name: 'warp', amount: 0.8 },
+      { at: 1500, name: 'sparkle', count: 40 },
+    ]);
+    cleanups.push(introSfx.stop);
+    intro.done.then(() => introSfx.stop());
     cleanups.push(intro.cancel);
     intro.done.then(() => {
       if (!alive) return;

@@ -312,7 +312,8 @@ export default {
       if (m.state.out.length !== before) {
         outEl.textContent = decode(m.state.out);
         const r = $('.es-caret').getBoundingClientRect();
-        fx.burst(r.left, r.top + 8, { count: 6, color: accent, spread: 2.5 });
+        fx.burst(r.left, r.top + 8, { count: 6, color: accent, spread: 2.5, silent: true });
+        ctx.sound.play('bleep', { pitch: 0.75 + (m.state.out.at(-1) % 32) / 24, x: r.left });
       }
       drawView();
       const len = current.lang === 'ook' ? 9 : 1;
@@ -322,6 +323,7 @@ export default {
       if (m.state.done) {
         stopRun();
         cursor.hidden = true;
+        ctx.sound.play('success');
         if (current.lang !== 'unary') scene.pulse(0.9);
       }
     }
@@ -593,6 +595,7 @@ export default {
       if (mode === 'decode') return sendRun();
       const text = input.value.replace(/\s+$/, '');
       if (!text) {
+        ctx.sound.play('error');
         $('.es-console').animate([{ translate: '0' }, { translate: '-10px' }, { translate: '8px' }, { translate: '0' }], { duration: 400 });
         return;
       }
@@ -617,6 +620,7 @@ export default {
       clearTimeout(liveTimer);
       const p = buildRun(code, forcedLang);
       if (!p.compiled) {
+        ctx.sound.play('error');
         $('.es-console').animate([{ translate: '0' }, { translate: '-10px' }, { translate: '8px' }, { translate: '0' }], { duration: 400 });
         toast(p.error || 'Paste a program first', { type: 'error' });
         return;
@@ -728,6 +732,8 @@ export default {
       if (!alive) return;
       if (line >= BOOT.length) return (bootTimer = setTimeout(finishBoot, 260));
       const text = BOOT[line];
+      if (char === 0 && line) ctx.sound.play('beep');
+      ctx.sound.play('type');
       char += 3;
       const done = BOOT.slice(0, line).map((t) => `> ${t}${t === 'ready.' ? '' : '  [ok]'}`).join('\n');
       pre.textContent = `${done}${done ? '\n' : ''}> ${text.slice(0, char)}█`;

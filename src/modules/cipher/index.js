@@ -153,11 +153,13 @@ export default {
       const r = el.getBoundingClientRect();
       fx.burst(r.left + r.width / 2, r.top + r.height / 2, { color: accentNow(), ...o });
     };
-    const shake = (el = consoleEl) =>
-      el.animate(
+    const shake = (el = consoleEl) => {
+      ctx.sound.play('error');
+      return el.animate(
         [{ translate: '0' }, { translate: '-10px' }, { translate: '8px' }, { translate: '-5px' }, { translate: '3px' }, { translate: '0' }],
         { duration: 450, easing: 'ease-in-out' }
       );
+    };
     const later = (fn, ms) => {
       const t = setTimeout(() => alive && fn(), ms);
       cleanups.push(() => clearTimeout(t));
@@ -223,6 +225,8 @@ export default {
       void wheel.offsetWidth;
       wheel.classList.add('cp-forging');
       spinTimer = setInterval(() => inSpans.forEach((s) => (s.textContent = pool[(Math.random() * pool.length) | 0])), 55);
+      const whir = ctx.sound.play('whir', { duration: 1.2 });
+      cleanups.push(() => whir?.stop());
       scene.warp(0.7);
       return new Promise((resolve) => {
         later(() => {
@@ -232,10 +236,12 @@ export default {
             later(() => {
               s.textContent = key.symbols[i];
               flashSpoke(i);
+              if (i % 2 === 0) ctx.sound.play('tumbler');
             }, i * 22)
           );
           later(() => {
             wheel.classList.add('cp-locked');
+            ctx.sound.play('lock');
             scene.pulse(1.3);
             burstAt($('.cp-seal'), { count: 46, spread: 9 });
             burstAt($('.cp-seal'), { count: 26, color: '#ffffff', spread: 4 });
@@ -515,6 +521,7 @@ export default {
         const job = ctx.ai.generate(AI_SPEC, prompt, {
           onToken: (t) => {
             raw += t;
+            ctx.sound.play('type');
             if (!frame) frame = requestAnimationFrame(paint);
           },
         });
@@ -658,6 +665,7 @@ export default {
               g.classList.add('landed');
               if (u.spoke !== undefined) {
                 flashSpoke(u.spoke);
+                ctx.sound.play('chime', { note: u.spoke % 10, peak: 0.05, x: g.getBoundingClientRect().left });
                 lightWheel(new Set([u.spoke]));
               }
             }
@@ -668,6 +676,7 @@ export default {
       later(() => {
         lightWheel(new Set());
         card.classList.add('cp-stamped');
+        ctx.sound.play('stamp');
         scene.pulse(1.2);
         scene.warp(0.4);
         const r = secretEl.getBoundingClientRect();
@@ -814,6 +823,8 @@ export default {
       storage.set('mastery', mastery);
       const box = $('.cp-flip');
       box.classList.add('flipped', ok ? 'right' : 'wrong');
+      ctx.sound.play('flip');
+      ctx.sound.play(ok ? 'success' : 'fail', { level: Math.min(streak, 8) });
       $('.cp-flip-verdict').textContent = ok ? (streak > 2 ? `${streak} in a row!` : 'correct') : `you typed ${ch}`;
       flashSpoke(flash.index);
       if (ok) {
@@ -999,6 +1010,7 @@ export default {
           flash.done = true;
           streak = 0;
           $('.cp-flip').classList.add('flipped', 'wrong');
+          ctx.sound.play('flip');
           $('.cp-flip-verdict').textContent = 'skipped';
           renderMastery();
           later(nextFlash, 900);
@@ -1173,8 +1185,22 @@ export default {
     cleanups.push(() => clearInterval(titleTimer));
 
     // ================================================================ intro
-    const intro = playVault($('.cp-intro'), () => keyFor(currentCode));
-    cleanups.push(intro.cancel);
+    // Sound (from the intro's first frame): the tumblers spin and tick, clunk
+    // into place one ring at a time, the keyhole turns and the doors hiss open.
+    let introSfx = { stop() {} };
+    const intro = playVault($('.cp-intro'), () => keyFor(currentCode), () => {
+      introSfx = ctx.sound.sequence([
+        { at: 0, name: 'whir', duration: 1.4 },
+        ...Array.from({ length: 26 }, (_, i) => ({ at: i * 50, name: 'tumbler' })),
+        { at: 650, name: 'lock', pitch: 1.25 },
+        { at: 980, name: 'lock', pitch: 1.0 },
+        { at: 1310, name: 'lock', pitch: 0.8 },
+        { at: 1700, name: 'lock', pitch: 0.6 },
+        { at: 1950, name: 'door' },
+      ]);
+    });
+    cleanups.push(intro.cancel, () => introSfx.stop());
+    intro.done.then(() => introSfx.stop());
     intro.opening.then(() => {
       if (!alive) return;
       root.classList.add('cp-ready');
@@ -1202,7 +1228,7 @@ function escapeHtml(s) {
 // a combination lock, click into place one after another, the keyhole turns,
 // and the vault doors slide apart to reveal the page. Click or a key skips it.
 // ---------------------------------------------------------------------------
-function playVault(canvas, currentKey) {
+function playVault(canvas, currentKey, onStart) {
   const host = canvas.parentElement;
   const g = canvas.getContext('2d');
   const dpr = Math.min(devicePixelRatio, 2);
@@ -1308,7 +1334,10 @@ function playVault(canvas, currentKey) {
   }
 
   function frame(now) {
-    if (!start) start = last = now;
+    if (!start) {
+      start = last = now;
+      onStart?.();
+    }
     const t = now - start;
     const dt = Math.min(3, (now - last) / 16.7);
     last = now;

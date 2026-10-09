@@ -358,7 +358,8 @@ export default {
       if (!carveAll) {
         [...carving.querySelectorAll('.an-g.carve')].slice(-3).forEach((g) => {
           const r = g.getBoundingClientRect();
-          fx.burst(r.left + r.width / 2, r.bottom - 4, { count: 7, color: DUST, spread: 2.6 });
+          fx.burst(r.left + r.width / 2, r.bottom - 4, { count: 7, color: DUST, spread: 2.6, silent: true });
+          ctx.sound.play('chisel', { x: r.left });
         });
       }
       lastSig = sigs;
@@ -521,6 +522,7 @@ export default {
     function send() {
       const value = input.value.replace(/\s+$/, '');
       if (!value.trim()) {
+        ctx.sound.play('error');
         consoleEl.animate(
           [{ translate: '0' }, { translate: '-10px' }, { translate: '8px' }, { translate: '-5px' }, { translate: '3px' }, { translate: '0' }],
           { duration: 450, easing: 'ease-in-out' }
@@ -528,6 +530,7 @@ export default {
         return;
       }
       if (mode === 'decode' && !decode(value).tokens.some((t) => t.kind === 'letter' || t.kind === 'number')) {
+        ctx.sound.play('error');
         consoleEl.animate([{ translate: '0' }, { translate: '-10px' }, { translate: '8px' }, { translate: '0' }], { duration: 400 });
         toast('No runes, hieroglyphs, Ogham, cuneiform, Greek or Latin capitals found', { type: 'error' });
         return;
@@ -554,7 +557,10 @@ export default {
         // A rumble, then chisel dust along the new stone.
         const c = card.getBoundingClientRect();
         for (let k = 0; k < 6; k++) {
-          setTimeout(() => fx.burst(c.left + (c.width * (k + 0.5)) / 6, c.top + 40, { count: 10, color: DUST, spread: 4 }), 180 + k * 90);
+          setTimeout(() => {
+            fx.burst(c.left + (c.width * (k + 0.5)) / 6, c.top + 40, { count: 10, color: DUST, spread: 4, silent: true });
+            ctx.sound.play('chisel', { x: c.left + (c.width * (k + 0.5)) / 6 });
+          }, 180 + k * 90);
         }
         const b = sendBtn.getBoundingClientRect();
         fx.burst(b.left + b.width / 2, b.top + b.height / 2, { count: 26, color: accent, spread: 6 });
@@ -658,6 +664,14 @@ export default {
     fontsReady.then(() => {
       if (!alive) return;
       sand = playSandstorm($('.an-sand'), accent);
+      // Sound: desert wind sweeps across, then a deep rumble as the stone appears.
+      const sandSfx = ctx.sound.sequence([
+        { at: 0, name: 'wind', duration: 1.9, freq: 380, peak: 0.11 },
+        { at: 250, name: 'wind', duration: 1.5, freq: 900, peak: 0.06 },
+        { at: 1550, name: 'boom' },
+      ]);
+      cleanups.push(sandSfx.stop);
+      sand.done.then(() => sandSfx.stop());
       sand.done.then(() => {
         if (!alive) return;
         root.classList.add('an-ready');

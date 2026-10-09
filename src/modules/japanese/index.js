@@ -121,11 +121,13 @@ export default {
       const r = el.getBoundingClientRect();
       fx.burst(r.left + r.width / 2, r.top + r.height / 2, { color: accent, ...o });
     };
-    const shake = () =>
-      consoleEl.animate(
+    const shake = () => {
+      ctx.sound.play('error');
+      return consoleEl.animate(
         [{ translate: '0' }, { translate: '-10px' }, { translate: '8px' }, { translate: '-5px' }, { translate: '3px' }, { translate: '0' }],
         { duration: 450, easing: 'ease-in-out' }
       );
+    };
 
     // ------------------------------------------------------ ruby rendering
     // Japanese is the base text and its reading sits on top (furigana). For
@@ -184,6 +186,7 @@ export default {
       cell.classList.remove('press');
       void cell.offsetWidth;
       cell.classList.add('press');
+      ctx.sound.play('koto', { note: [...chartEl.children].indexOf(cell) % 10, peak: 0.07, x: cell.getBoundingClientRect().left });
       burstAt(cell, { count: 10, spread: 3 });
     });
 
@@ -262,6 +265,7 @@ export default {
       buildRing();
       lastBases = [];
       if (animate && changed) {
+        ctx.sound.play('koto', { note: STYLES.findIndex((s) => s.id === id) * 2 });
         scene.pulse(0.7);
         burstAt(root.querySelector(`.jp-style[data-style="${id}"]`), { count: 20, spread: 4.5 });
       }
@@ -322,7 +326,10 @@ export default {
       const out = card.querySelector('.jp-out');
       // Cards always show the result as the base text; the other side is the reading on top.
       out.innerHTML = rubyHtml(res.tokens, { limit: 1200 });
-      if (animate) out.classList.add('jp-ink');
+      if (animate) {
+        out.classList.add('jp-ink');
+        ctx.sound.play('brush');
+      }
       Object.assign(card, { _entry: entry, _text: res.text });
       feed.appendChild(card);
       cleanups.push(fx.tilt(card, { max: 3, scale: 1.005, perspective: 1400 }));
@@ -449,6 +456,7 @@ export default {
       hanko.classList.remove('stamp');
       void hanko.offsetWidth;
       hanko.classList.add('stamp');
+      ctx.sound.play('stamp');
       scene.pulse(1);
     }
 
@@ -558,8 +566,21 @@ export default {
 
     // ---------------------------------------------------------------- intro
     root.classList.add('jp-intro-on');
-    const intro = playSakura($('.jp-intro'), accent, () => $('.jp-sun').getBoundingClientRect());
-    cleanups.push(intro.cancel);
+    // Sound (from the intro's first frame): the sun rises on a swell and a koto
+    // phrase, the petal gust blows through, and the sun flies off with a pluck.
+    let introSfx = { stop() {} };
+    const intro = playSakura($('.jp-intro'), accent, () => $('.jp-sun').getBoundingClientRect(), () => {
+      introSfx = ctx.sound.sequence([
+        { at: 0, name: 'swell', duration: 1.6, notes: [0, 3, 5] },
+        ...[0, 1, 2, 3, 4].map((n, i) => ({ at: 120 + i * 140, name: 'koto', note: n })),
+        { at: 450, name: 'wind', duration: 1.7, freq: 700, peak: 0.07 },
+        { at: 1500, name: 'koto', note: 7 },
+        { at: 1500, name: 'swish' },
+        { at: 2050, name: 'chime', note: 5 },
+      ]);
+    });
+    cleanups.push(intro.cancel, () => introSfx.stop());
+    intro.done.then(() => introSfx.stop());
     intro.done.then(() => {
       if (!alive) return;
       root.classList.add('jp-ready');
@@ -584,7 +605,7 @@ function escapeHtml(s) {
 // petals sweeps across the screen, and the sun flies up into the header
 // emblem. Click or any key skips it.
 // ---------------------------------------------------------------------------
-function playSakura(canvas, accent, sunTarget) {
+function playSakura(canvas, accent, sunTarget, onStart) {
   const host = canvas.parentElement;
   const g = canvas.getContext('2d');
   const dpr = Math.min(devicePixelRatio, 2);
@@ -643,7 +664,10 @@ function playSakura(canvas, accent, sunTarget) {
   }
 
   function frame(now) {
-    if (!start) start = last = now;
+    if (!start) {
+      start = last = now;
+      onStart?.();
+    }
     const t = now - start;
     const dt = Math.min(2.5, (now - last) / 16.7);
     last = now;

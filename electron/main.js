@@ -168,6 +168,8 @@ function createWindow() {
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: true,
+      // Sound effects play from the start (intros run before the first click).
+      autoplayPolicy: 'no-user-gesture-required',
     },
   });
 

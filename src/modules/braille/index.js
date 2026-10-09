@@ -220,6 +220,12 @@ export default {
       }
       flushWord();
       container.classList.toggle('br-animate', animate);
+      // Each cell's dots pop in on a timer (CSS: --i × 34ms + 480ms); a soft chime per cell, in step.
+      if (animate) {
+        [...container.querySelectorAll('.br-cell')].slice(0, 18).forEach((el, i) =>
+          setTimeout(() => alive && el.isConnected && ctx.sound.play('chime', { note: (el.querySelectorAll('i.on').length + i) % 10, peak: 0.03, x: el.getBoundingClientRect().left }), i * 34 + 480)
+        );
+      }
     }
 
     function addCard(entry, { animate }) {
@@ -460,6 +466,7 @@ export default {
         const job = ctx.ai.generate(AI_SPEC, prompt, {
           onToken: (t) => {
             raw += t;
+            ctx.sound.play('type');
             if (!frame) frame = requestAnimationFrame(paint);
           },
         });
@@ -615,6 +622,7 @@ export default {
       }
       const value = input.value.replace(/\s+$/, '');
       if (!value.trim()) {
+        ctx.sound.play('error');
         consoleEl.animate(
           [{ translate: '0' }, { translate: '-10px' }, { translate: '8px' }, { translate: '-5px' }, { translate: '3px' }, { translate: '0' }],
           { duration: 450, easing: 'ease-in-out' }
@@ -864,12 +872,23 @@ export default {
     feed.scrollTop = feed.scrollHeight;
 
     // ------------------------------------------------------------------ intro
+    // Sound: the sphere hums and spins while it gathers, chimes climb as it
+    // morphs into braille, and it locks with a stamp.
+    const introSfx = ctx.sound.sequence([
+      { at: 0, name: 'swell', duration: 2.2, notes: [0, 2, 4] },
+      { at: 0, name: 'whir', duration: 1.0 },
+      { at: 900, name: 'swish' },
+      ...[0, 1, 2, 3, 4, 5].map((n) => ({ at: 950 + n * 150, name: 'chime', note: n })),
+    ]);
     const intro = playIntro($('.br-intro'), accentOf(mode), () => {
       if (!alive) return;
+      ctx.sound.play('stamp');
+      ctx.sound.play('success');
       scene.pulse(1.4);
       root.classList.add('br-locked');
     });
-    cleanups.push(intro.cancel);
+    cleanups.push(intro.cancel, introSfx.stop);
+    intro.done.then(() => introSfx.stop());
     root.classList.add('br-intro-on');
     intro.done.then(() => {
       if (!alive) return;

@@ -115,6 +115,7 @@ export default {
           el.classList.remove('flash');
           void el.offsetWidth;
           el.classList.add('flash');
+          if (k < 16) ctx.sound.play('chime', { note: ringChars.indexOf(el) % 10, peak: 0.035 });
         }, k * 35);
       });
     }
@@ -433,6 +434,7 @@ export default {
     function send() {
       const value = input.value.replace(/\s+$/, '');
       if (!value) {
+        ctx.sound.play('error');
         consoleEl.animate(
           [{ translate: '0' }, { translate: '-10px' }, { translate: '8px' }, { translate: '-5px' }, { translate: '3px' }, { translate: '0' }],
           { duration: 450, easing: 'ease-in-out' }
@@ -442,6 +444,7 @@ export default {
       if (mode === 'decode') {
         const dec = decodeBase64(value);
         if (!dec.ok) {
+          ctx.sound.play('error');
           consoleEl.animate([{ translate: '0' }, { translate: '-10px' }, { translate: '8px' }, { translate: '0' }], { duration: 400 });
           toast(dec.error, { type: 'error' });
           return;
@@ -584,7 +587,14 @@ export default {
     // ------------------------------------------------------------------ intro
     root.classList.add('b64-intro');
     const rain = playRain($('.b64-rain'), accent);
-    cleanups.push(rain.cancel);
+    // Sound: digital rain that gets denser and faster with the animation.
+    const introSfx = ctx.sound.sequence([
+      { at: 0, name: 'rain', duration: 1.9 },
+      { at: 0, name: 'wind', duration: 1.9, freq: 1400, peak: 0.03 },
+      { at: 1650, name: 'swish' },
+    ]);
+    cleanups.push(rain.cancel, introSfx.stop);
+    rain.done.then(() => introSfx.stop());
     rain.done.then(() => {
       if (!alive) return;
       root.classList.add('b64-ready');

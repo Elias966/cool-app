@@ -43,6 +43,7 @@ src/core/app.js        router, dock, transitions, builds the ctx handed to modul
 src/core/scene.js      three.js background (stars, wireframe core, grid, bloom)
 src/core/fx.js         tilt, magnetic, ripple, scramble, burst (particle canvas)
 src/core/ai.js         ctx.ai (load / generate / status), cancels jobs on unmount
+src/core/sound.js      ctx.sound: synthesized sound effects, volume/mute settings
 src/core/home.js       launcher page
 src/modules/<id>/      one folder per module
 build/after-pack.js    wraps the binary to add --no-sandbox inside AppImages
@@ -54,7 +55,7 @@ build/icon.png         app icon (generated with Python, 512 px)
 - **Module contract:** a folder with `module.json` (`id`, `name`,
   `description`, `icon`, `accent`, `entry`, `style`, `order`) and an ES module
   whose default export is `{ mount(root, ctx) }`; `mount` returns a cleanup
-  function. `ctx` = `{ meta, scene, fx, toast, ai, storage, navigate, url }`.
+  function. `ctx` = `{ meta, scene, fx, sound, toast, ai, storage, navigate, url }`.
   `storage` is namespaced localStorage per module. Prefix module CSS classes
   (`br-`, `b64-`, `dg-`, `an-`, `es-`, `ly-`, `jp-`, `cp-`).
 - Each module follows the same page pattern: canvas intro effect, header,
@@ -165,6 +166,37 @@ Notes per module:
   `buildStyle()` makes them with a generator seeded by the key code, so the
   live preview matches the sealed result; `parseInline()` reads them back,
   also when typed by hand, and Read mode tries it before the key ring.
+
+## Sound
+
+`src/core/sound.js` synthesizes every sound with the Web Audio API
+(oscillators and filtered noise → compressor + generated reverb); there are
+no audio files. Notes come from one pentatonic scale (A minor; the koto uses
+the Japanese in-scale) so overlapping sounds stay in tune; `x` pans a sound to
+where its animation is; fast repeats are throttled per preset (`THROTTLE`).
+
+- Automatic, for every module: `fx.burst` → sparkle, `fx.scramble` → one
+  shared stream of ticks ending on a settle note, `ctx.scene.pulse/warp` →
+  thump/whoosh (modules get a wrapped scene; the shell's own warps are silent),
+  toasts → ding / error buzz. The shell adds: navigation whooshes, a click for
+  every button/tab press (toggles play on/off), dock and home-card hovers, and
+  key ticks in text fields. `silent: true` on `burst`/`scramble` skips the
+  sound where a module plays its own (Ancient's chisel dust, Esolang output).
+- Per module: each intro has a timed `ctx.sound.sequence` matching its
+  animation (Japanese and Cipher start theirs from the intro's first frame,
+  because they wait for fonts), stopped when the intro is skipped. Plus
+  signature moments: Braille dot chimes in step with the cell animation and
+  AI token ticks; Base64 ring arpeggio; Dingbats font shuffle; Ancient chisel
+  per carved glyph; Esolang boot ticks/beeps and a bleep per output character;
+  Layered Encoding drops, plucks and dice; Japanese koto, brush and hanko stamp;
+  Cipher Pact whir, spoke ticks, a chime per sealed letter (pitched by the
+  letter), stamp, flashcard flips. Every empty-send shake buzzes.
+- Title bar speaker: volume slider, sound on/off, typing clicks on/off
+  (scroll on the icon changes volume); saved in localStorage `prism:sound`.
+- `main.js` sets `autoplayPolicy: 'no-user-gesture-required'` so intros
+  sound before the first click.
+- Tests: `sound.measure(name)` renders a preset offline (peak/RMS);
+  setting `window.__prismSoundLog = []` records every sound name played.
 
 ## Packaging details (each one fixed a real problem)
 

@@ -136,6 +136,7 @@ export default {
       renderKeyboard(animate);
       renderStream({ reskin: animate });
       if (animate) {
+        ctx.sound.play('shuffle');
         scene.pulse(0.9);
         const b = root.querySelector(`.dg-font[data-font="${id}"]`).getBoundingClientRect();
         fx.burst(b.left + b.width / 2, b.top + b.height / 2, { count: 30, color: accent, spread: 6 });
@@ -483,6 +484,7 @@ export default {
     function send() {
       const value = input.value.replace(/\s+$/, '');
       if (!value) {
+        ctx.sound.play('error');
         consoleEl.animate(
           [{ translate: '0' }, { translate: '-10px' }, { translate: '8px' }, { translate: '-5px' }, { translate: '3px' }, { translate: '0' }],
           { duration: 450, easing: 'ease-in-out' }
@@ -490,6 +492,7 @@ export default {
         return;
       }
       if (mode === 'decode' && !fromDingbats(value, decodeFont).hits) {
+        ctx.sound.play('error');
         consoleEl.animate([{ translate: '0' }, { translate: '-10px' }, { translate: '8px' }, { translate: '0' }], { duration: 400 });
         toast('None of these are Wingdings, Webdings, Symbol or Zapf Dingbats symbols', { type: 'error' });
         return;
@@ -636,6 +639,17 @@ export default {
     fontsReady.then(() => {
       if (!alive) return;
       storm = playStorm($('.dg-storm'), accent);
+      // Sound: the symbol storm bursts out of the centre and rattles past.
+      const stormSfx = ctx.sound.sequence([
+        { at: 0, name: 'boom' },
+        { at: 0, name: 'whir', duration: 1.4 },
+        { at: 150, name: 'shuffle' },
+        { at: 520, name: 'shuffle' },
+        { at: 900, name: 'shuffle' },
+        { at: 1350, name: 'swish' },
+      ]);
+      cleanups.push(stormSfx.stop);
+      storm.done.then(() => stormSfx.stop());
       storm.done.then(() => {
         if (!alive) return;
         root.classList.add('dg-ready');

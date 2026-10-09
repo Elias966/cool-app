@@ -3,6 +3,7 @@ import { fx } from './fx.js';
 import { discoverModules, mountModule } from './modules.js';
 import { renderHome } from './home.js';
 import { createAI } from './ai.js';
+import { sound } from './sound.js';
 
 const DEFAULT_ACCENT = '#7c5cff';
 const stage = document.getElementById('stage');
@@ -18,6 +19,7 @@ let navToken = 0;
 // Shared helpers handed to modules
 // ---------------------------------------------------------------------------
 function toast(message, { type = 'info', duration = 2200 } = {}) {
+  sound.play(type === 'error' ? 'error' : 'toast');
   const host = document.getElementById('toasts');
   const el = document.createElement('div');
   el.className = `toast toast-${type}`;
@@ -53,11 +55,27 @@ function storageFor(id) {
   };
 }
 
+// Modules get a scene whose pulses and warps also sound.
+const moduleScene = {
+  ...scene,
+  setAccent: (hex) => scene.setAccent(hex),
+  setFocus: (f) => scene.setFocus(f),
+  pulse(strength = 1) {
+    sound.play('pulse', { amount: strength });
+    scene.pulse(strength);
+  },
+  warp(strength = 1) {
+    sound.play('warp', { amount: strength });
+    scene.warp(strength);
+  },
+};
+
 function makeContext(meta) {
   return {
     meta,
-    scene,
+    scene: moduleScene,
     fx,
+    sound,
     toast,
     ai: createAI(),
     storage: storageFor(meta.id),
@@ -149,6 +167,7 @@ async function navigate(id, { force = false } = {}) {
 
   if (location.hash !== `#/${id}`) history.replaceState(null, '', `#/${id}`);
 
+  sound.play(id === 'home' ? 'navHome' : 'navIn');
   const leaving = stage.querySelector('.view');
   if (leaving) {
     leaving.classList.add('view-leave');
@@ -228,6 +247,83 @@ addEventListener('pointermove', (e) => {
 addEventListener('keydown', (e) => {
   if (e.key === 'Escape' && current.id !== 'home' && !e.defaultPrevented) navigate('home');
 });
+
+// ---------------------------------------------------------------------------
+// Sounds for every click, hover and keystroke
+// ---------------------------------------------------------------------------
+const CLICKABLE = 'button, [role="tab"], [role="radio"], summary, a[href], .dg-key';
+addEventListener('pointerdown', (e) => {
+  if (e.button !== 0) return;
+  const el = e.target.closest(CLICKABLE);
+  if (!el || el.disabled) return;
+  const x = e.clientX;
+  if (el.matches('[class*="-send"], .cp-forge')) sound.play('press', { x });
+  else if (el.hasAttribute('aria-pressed')) sound.play('toggle', { on: el.getAttribute('aria-pressed') !== 'true', x });
+  else if (el.matches('[role="tab"], [role="radio"]')) sound.play('click', { pitch: 1.25, x });
+  else sound.play('click', { pitch: 0.92 + Math.random() * 0.16, x });
+}, true);
+
+addEventListener('pointerover', (e) => {
+  const el = e.target.closest('.dock-btn, .mcard');
+  if (el && !el.contains(e.relatedTarget)) sound.play('hover', { x: e.clientX });
+});
+
+addEventListener('keydown', (e) => {
+  if (!sound.settings.typing || e.ctrlKey || e.metaKey || e.altKey) return;
+  const t = e.target;
+  const typing = t instanceof HTMLTextAreaElement || (t instanceof HTMLInputElement && /^(text|search|)$/.test(t.type));
+  if (!typing) return;
+  if (e.key.length === 1) sound.play('key');
+  else if (e.key === 'Backspace' || e.key === 'Delete') sound.play('key', { low: true });
+}, true);
+
+// The sound control in the title bar: click for the panel, scroll to change volume.
+(function soundControl() {
+  const btn = document.getElementById('sound-btn');
+  const pop = document.getElementById('sound-pop');
+  if (!btn || !pop) return;
+  const vol = pop.querySelector('[data-sound="volume"]');
+  const mute = pop.querySelector('[data-sound="mute"]');
+  const typing = pop.querySelector('[data-sound="typing"]');
+  const render = () => {
+    const st = sound.settings;
+    const level = st.muted ? 0 : st.volume;
+    btn.dataset.level = level === 0 ? '0' : level < 0.4 ? '1' : level < 0.75 ? '2' : '3';
+    btn.title = st.muted ? 'Sound off (click for settings)' : `Sound ${Math.round(st.volume * 100)}% (click for settings, scroll to change)`;
+    vol.value = Math.round(st.volume * 100);
+    pop.querySelector('.sound-pct').textContent = st.muted ? 'off' : `${Math.round(st.volume * 100)}%`;
+    mute.setAttribute('aria-pressed', String(!st.muted));
+    mute.textContent = st.muted ? 'Sound off' : 'Sound on';
+    typing.setAttribute('aria-pressed', String(st.typing));
+  };
+  btn.addEventListener('click', () => {
+    pop.hidden = !pop.hidden;
+    render();
+  });
+  btn.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    sound.setVolume(sound.settings.volume + (e.deltaY < 0 ? 0.05 : -0.05));
+    render();
+    sound.play('click');
+  }, { passive: false });
+  vol.addEventListener('input', () => {
+    sound.setVolume(vol.value / 100);
+    render();
+  });
+  vol.addEventListener('change', () => sound.play('chime', { note: Math.round(vol.value / 20) }));
+  mute.addEventListener('click', () => {
+    sound.setMuted(!sound.settings.muted);
+    render();
+  });
+  typing.addEventListener('click', () => {
+    sound.setTyping(!sound.settings.typing);
+    render();
+  });
+  addEventListener('pointerdown', (e) => {
+    if (!pop.hidden && !pop.contains(e.target) && !btn.contains(e.target)) pop.hidden = true;
+  });
+  render();
+})();
 
 addEventListener('hashchange', () => navigate(location.hash.replace(/^#\/?/, '') || 'home'));
 
