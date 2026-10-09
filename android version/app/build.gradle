@@ -1,0 +1,89 @@
+import groovy.json.JsonSlurper
+
+plugins {
+    id 'com.android.application'
+}
+
+// One version for both apps: taken from the desktop app's package.json.
+def pkg = new JsonSlurper().parse(rootProject.file('../package.json'))
+def (major, minor, patch) = pkg.version.tokenize('.').collect { it.replaceAll(/\D.*/, '') as int }
+
+// Release signing. The repo carries a key (keystore/prism-release.jks) so every
+// build, local or CI, can update an installed copy. Set the PRISM_KEYSTORE*
+// environment variables to sign with your own key instead.
+def keystoreFile = System.getenv('PRISM_KEYSTORE') ?: 'keystore/prism-release.jks'
+def keystorePass = System.getenv('PRISM_KEYSTORE_PASSWORD') ?: 'prism-android'
+def keyAliasName = System.getenv('PRISM_KEY_ALIAS') ?: 'prism'
+def keyPass = System.getenv('PRISM_KEY_PASSWORD') ?: keystorePass
+
+android {
+    namespace 'com.theking.prism'
+    compileSdk 35
+
+    defaultConfig {
+        applicationId 'com.theking.prism'
+        minSdk 24          // Android 7.0
+        targetSdk 35
+        versionCode major * 10000 + minor * 100 + patch
+        versionName pkg.version
+        resourceConfigurations += ['en']
+    }
+
+    signingConfigs {
+        release {
+            storeFile rootProject.file(keystoreFile)
+            storePassword keystorePass
+            keyAlias keyAliasName
+            keyPassword keyPass
+            enableV2Signing true
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled true
+            shrinkResources true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            signingConfig signingConfigs.release
+        }
+        debug {
+            applicationIdSuffix '.debug'
+            versionNameSuffix '-debug'
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    buildFeatures {
+        buildConfig true
+    }
+
+    // The web assets (and the WebAssembly runtime) are already compact; storing
+    // the .wasm uncompressed lets the WebView stream it straight from the APK.
+    androidResources {
+        noCompress += ['wasm']
+    }
+
+    applicationVariants.all { variant ->
+        variant.outputs.all {
+            outputFileName = "Prism-${variant.versionName}${variant.buildType.name == 'release' ? '' : '-' + variant.buildType.name}.apk"
+        }
+    }
+}
+
+// The web app must be built into assets/www first (npm run android:web).
+tasks.named('preBuild') {
+    doFirst {
+        if (!file('src/main/assets/www/index.html').exists()) {
+            throw new GradleException('Web assets missing: run `npm run android:web` in the project root first.')
+        }
+    }
+}
+
+dependencies {
+    implementation 'androidx.activity:activity:1.10.1'
+    implementation 'androidx.core:core:1.16.0'
+}

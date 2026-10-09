@@ -269,3 +269,108 @@ button { font: inherit; color: inherit; }
   font-size: 11.5px; cursor: pointer; color: var(--muted); transition: background 0.2s, color 0.2s, border-color 0.2s;
 }
 .sound-chip[aria-pressed='true'] { color: #fff; background: color-mix(in srgb, var(--accent) 22%, transparent); border-color: color-mix(in srgb, var(--accent) 55%, transparent); }
+
+/* ------------------------------------------------------- phones and tablets */
+/* The Android app sets --safe-* to the status/navigation bar sizes (it draws
+   edge to edge); everywhere else they are 0. */
+:root { --safe-top: 0px; --safe-right: 0px; --safe-bottom: 0px; --safe-left: 0px; --tabbar: 0px; }
+html { -webkit-tap-highlight-color: transparent; }
+button, [role='tab'], [role='radio'], summary { touch-action: manipulation; }
+.platform-android .win-controls { display: none; }
+.platform-android .titlebar {
+  height: calc(var(--titlebar) + var(--safe-top)); padding: var(--safe-top) var(--safe-right) 0 var(--safe-left);
+}
+.platform-android .dock { top: calc(var(--titlebar) + var(--safe-top) + 14px); bottom: calc(14px + var(--safe-bottom)); left: calc(14px + var(--safe-left)); }
+.platform-android .stage { top: calc(var(--titlebar) + var(--safe-top)); left: calc(var(--dock) + 14px + var(--safe-left)); right: var(--safe-right); bottom: var(--safe-bottom); }
+.platform-android .sound-btn { width: 56px; }
+
+@media (hover: none) {
+  #cursor-glow { display: none; }
+  .mcard:hover .mcard-go svg { transform: none; }
+}
+
+/* Phones (portrait): a slim top bar, a bottom tab bar, one column. */
+@media (max-width: 599px), (max-width: 760px) and (orientation: portrait) {
+  :root { --titlebar: 50px; --tabbar: 64px; }
+  .brand { padding-left: 16px; gap: 10px; min-width: 0; }
+  .brand-name { font-size: 12px; letter-spacing: 0.26em; }
+  .brand-crumb { font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text); opacity: 0.8; }
+  .brand-crumb:not(:empty)::before { margin-right: 8px; }
+  .win-controls { display: none; }
+
+  .dock, .platform-android .dock {
+    top: auto; left: calc(8px + var(--safe-left)); right: calc(8px + var(--safe-right)); bottom: calc(8px + var(--safe-bottom));
+    width: auto; height: var(--tabbar); flex-direction: row; justify-content: space-between; gap: 2px; padding: 0 6px;
+    border-radius: 20px; overflow: auto hidden; scrollbar-width: none; overscroll-behavior: contain;
+    transform: translateY(160%);
+  }
+  .dock::-webkit-scrollbar { display: none; }
+  .booted .dock { transform: none; }
+  .dock-sep, .dock-spacer { display: none; }
+  .dock-btn { flex: 1 1 0; min-width: 36px; max-width: 58px; width: auto; height: 48px; border-radius: 14px; }
+  .dock-btn.active::before { left: 30%; right: 30%; top: auto; bottom: -7px; width: auto; height: 3px; }
+  .dock-label { display: none; }
+
+  .stage, .platform-android .stage {
+    top: calc(var(--titlebar) + var(--safe-top)); left: var(--safe-left); right: var(--safe-right);
+    bottom: calc(var(--tabbar) + 10px + var(--safe-bottom));
+    /* content fades out just above the tab bar instead of ending on a hard line */
+    -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 18px), transparent);
+    mask-image: linear-gradient(to bottom, #000 calc(100% - 18px), transparent);
+  }
+  /* The dock fades in with the page, but a 3D fly-in is too much on a phone. */
+  @keyframes viewIn { from { opacity: 0; transform: translateY(24px) scale(0.97); filter: blur(6px); } to { opacity: 1; transform: none; filter: none; } }
+  @keyframes viewOut { to { opacity: 0; transform: translateY(-12px) scale(1.02); filter: blur(6px); } }
+
+  .toasts { bottom: calc(var(--tabbar) + 30px + var(--safe-bottom)); width: calc(100% - 32px); }
+  .toast { max-width: 100%; text-align: center; }
+
+  .sound-pop { position: fixed; top: calc(var(--titlebar) + var(--safe-top) + 6px); right: calc(10px + var(--safe-right)); width: min(300px, calc(100vw - 20px)); padding: 14px 16px; }
+}
+
+/* The on-screen keyboard is up (a portrait phone this short): give its room
+   to the text being typed and hide the tab bar until it closes. */
+@media (max-width: 760px) and (orientation: portrait) and (max-height: 560px) {
+  .dock, .platform-android .dock { display: none; }
+  .stage, .platform-android .stage { bottom: 0; }
+  .toasts { bottom: 16px; }
+}
+
+/* Phones held sideways: little height, so the dock stays a slim rail on the left. */
+@media (max-height: 520px) and (min-width: 600px) {
+  :root { --titlebar: 40px; --dock: 62px; }
+  .brand-name { font-size: 12px; }
+  .dock, .platform-android .dock { top: calc(var(--titlebar) + var(--safe-top) + 6px); bottom: calc(6px + var(--safe-bottom)); left: calc(6px + var(--safe-left)); width: 52px; gap: 4px; padding: 6px 0; overflow: hidden auto; scrollbar-width: none; border-radius: 18px; }
+  .dock::-webkit-scrollbar { display: none; }
+  .dock-btn { width: 42px; height: 42px; flex-shrink: 0; }
+  .dock-btn.active::before { left: -6px; }
+  .dock-label { display: none; }
+  .stage, .platform-android .stage { left: calc(var(--dock) + var(--safe-left)); }
+  .sound-pop { position: fixed; top: calc(var(--titlebar) + var(--safe-top) + 6px); right: calc(10px + var(--safe-right)); }
+}
+
+/* Home on small screens: compact list cards instead of tall tiles. */
+@media (max-width: 760px), (max-height: 520px) and (min-width: 600px) {
+  .home { padding: 4vh 16px 32px; }
+  .home-hero { margin-bottom: 26px; }
+  .eyebrow { font-size: 10px; padding: 7px 14px; letter-spacing: 0.3em; }
+  .hero-title { font-size: clamp(56px, 19vw, 96px); margin: 18px 0 6px; }
+  .hero-sub { font-size: 14.5px; padding: 0 6px; }
+  .module-grid { grid-template-columns: 1fr; gap: 12px; }
+  .mcard { flex-direction: row; align-items: center; gap: 16px; min-height: 0; padding: 16px 18px; border-radius: 20px; }
+  .mcard-icon { flex: none; width: 54px; height: 54px; border-radius: 16px; font-size: 28px; transform: none; }
+  .mcard-icon img { width: 30px; height: 30px; }
+  .mcard-body { min-width: 0; gap: 4px; transform: none; }
+  .mcard-title { font-size: 17px; }
+  .mcard-desc { font-size: 13px; line-height: 1.45; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .mcard-foot { display: none; }
+}
+@media (max-height: 520px) and (min-width: 600px) {
+  .module-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+/* Touch screens: bigger targets in the shared controls. */
+@media (pointer: coarse) {
+  .sound-chip { min-height: 38px; font-size: 13px; }
+  .sound-pop input[type='range'] { height: 30px; }
+}

@@ -9,7 +9,7 @@ export function renderHome(view, { modules, fx, navigate, openModulesFolder, ico
       <h1 class="hero-title" aria-label="PRISM">
         ${Array.from({ length: 10 }, (_, i) => `<span class="hero-layer" style="--z:${i}">PRISM</span>`).join('')}
       </h1>
-      <p class="hero-sub">Every page is a plug-in module. Pick one below — or drop your own into the modules folder.</p>
+      <p class="hero-sub">${openModulesFolder ? 'Every page is a plug-in module. Pick one below — or drop your own into the modules folder.' : 'Every page is a module. Pick one below to start.'}</p>
     </div>
     <div class="module-grid"></div>
   `;
@@ -55,9 +55,21 @@ export function renderHome(view, { modules, fx, navigate, openModulesFolder, ico
     cards.push(card);
   });
 
+  // Platforms without a modules folder (the Android app) have no "add" card.
+  if (openModulesFolder) cards.push(addCard(modules.length, openModulesFolder));
+
+  for (const card of cards) {
+    grid.appendChild(card);
+    cleanups.push(fx.tilt(card, { max: 9, scale: 1.03 }));
+  }
+
+  return () => cleanups.forEach((fn) => fn());
+}
+
+function addCard(i, openModulesFolder) {
   const add = document.createElement('button');
   add.className = 'mcard mcard-add';
-  add.style.setProperty('--i', modules.length);
+  add.style.setProperty('--i', i);
   add.innerHTML = `
     <span class="mcard-glare"></span>
     <span class="mcard-icon"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></span>
@@ -67,12 +79,5 @@ export function renderHome(view, { modules, fx, navigate, openModulesFolder, ico
     </span>
     <span class="mcard-foot"><span class="mcard-tag">extend</span><span class="mcard-go">Open folder</span></span>`;
   add.addEventListener('click', openModulesFolder);
-  cards.push(add);
-
-  for (const card of cards) {
-    grid.appendChild(card);
-    cleanups.push(fx.tilt(card, { max: 9, scale: 1.03 }));
-  }
-
-  return () => cleanups.forEach((fn) => fn());
+  return add;
 }

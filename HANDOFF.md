@@ -5,14 +5,18 @@ user-facing description, this file is for whoever works on the code next.
 
 ## What it is
 
-**Prism** is a modular Electron desktop app, shipped as a Linux AppImage. A
+**Prism** is a modular Electron desktop app, shipped as a Linux AppImage and
+(since 1.2.0) as an Android app built from the same `src/`. A
 three.js 3D background plus a shell (dock, home launcher, page transitions)
 hosts **modules**: self-contained pages discovered at startup. Eight modules
 exist, each translating text both ways with heavy visual effects.
 
 - Project: `/home/theking/cool-app` (not a git repo yet)
-- Build output: `dist/Prism-1.1.0-x86_64.AppImage` (~144 MB). Version 1.1.0 =
-  Layered Encoding, Japanese Scripts, Cipher Pact, Clear buttons and sound.
+- Build output: `dist/Prism-<version>-x86_64.AppImage` (~144 MB) and
+  `android version/app/build/outputs/apk/release/Prism-<version>.apk` (~30 MB).
+  1.1.0 = Layered Encoding, Japanese Scripts, Cipher Pact, Clear buttons and
+  sound. 1.2.0 = the Android app (phone/tablet layouts, phone-tuned sound, haptics).
+- Git: GitHub `Elias966/cool-app` (private); releases are published there.
 - Target: Ubuntu-family (the user's machine is Zorin OS / GNOME on X11) and Arch
 
 ## Run and build
@@ -31,8 +35,8 @@ npm run dist     # build the AppImage (also runs scripts/vendor.js first)
   drops any `examples/` folder inside `node_modules`.
 - Electron 44.7, electron-builder 26.15, three 0.186, @huggingface/transformers 4.3.1.
 - DevTools: F12 or Ctrl+Shift+I. Ctrl+R reloads. Esc returns home.
-- Releases: `.github/workflows/release.yml` builds the AppImage on GitHub and
-  publishes release `v<version>` (AppImage + .sha256) whenever `package.json`
+- Releases: `.github/workflows/release.yml` builds the AppImage and the APK on
+  GitHub and publishes release `v<version>` (both + .sha256) whenever `package.json`
   changes and that version has no release yet; also runnable by hand from the
   Actions tab. Release text = `release-notes/<version>.md` + install steps.
 - If `npm ci` fails in `onnxruntime-node`'s postinstall (it downloads optional
@@ -64,6 +68,8 @@ build/icon.png         app icon (generated with Python, 512 px)
   `description`, `icon`, `accent`, `entry`, `style`, `order`) and an ES module
   whose default export is `{ mount(root, ctx) }`; `mount` returns a cleanup
   function. `ctx` = `{ meta, scene, fx, sound, toast, ai, storage, navigate, url }`.
+  `window.prism` comes from `electron/preload.js` on desktop and from
+  `android version/web/bridge.js` on Android (`window.prism.platform`).
   `storage` is namespaced localStorage per module. Prefix module CSS classes
   (`br-`, `b64-`, `dg-`, `an-`, `es-`, `ly-`, `jp-`, `cp-`).
 - Each module follows the same page pattern: canvas intro effect, header,
@@ -205,6 +211,65 @@ where its animation is; fast repeats are throttled per preset (`THROTTLE`).
   sound before the first click.
 - Tests: `sound.measure(name)` renders a preset offline (peak/RMS);
   setting `window.__prismSoundLog = []` records every sound name played.
+
+## Android app
+
+`android version/` (see its README) wraps the same `src/` in a WebView;
+`scripts/android.js` (`npm run android:web`) copies it into the APK's assets
+and `npm run android` builds `Prism-<version>.apk` (minSdk 24 = Android 7.0,
+targetSdk 35, versionCode = major·10000 + minor·100 + patch, signed with the
+committed `keystore/prism-release.jks`).
+
+- **Serving:** `MainActivity` serves `assets/www` at
+  `https://appassets.androidplatform.net/` itself (not WebViewAssetLoader, so
+  `.mjs`/`.wasm` get the right MIME types) with COOP/COEP headers →
+  `crossOriginIsolated`, so the AI uses several threads. Absolute paths like
+  `/vendor/three/...` work because the site root is the asset root.
+- **Bridge:** `web/bridge.js` (plain ES2015 so an ancient WebView can still show
+  the "update Android System WebView" screen) defines `window.prism` with
+  `platform: 'android'`, `listModules()` from the generated `modules.json`, no
+  `openModulesFolder` (so no user modules, reload/folder dock buttons or "Add a
+  module" card), `ai.*` backed by `web/ai-worker.js` in a module Worker,
+  `shareFile(blob, name)` (share sheet; `<a download>` clicks on blob URLs are
+  routed there too), `clipboard.writeText` → native clipboard.
+  Native side: `window.AndroidBridge` (`insets`, `copyText`, `shareFile`,
+  `haptic`, `openUrl`, `appVersion`).
+- **AI:** `AI_SPEC` switches to `onnx-community/Qwen2.5-0.5B-Instruct` `q8`
+  (≈520 MB) on Android; WASM runtime = onnxruntime-web's
+  `ort-wasm-simd-threaded.asyncify.*` copied to `www/android/ort/`. Models live
+  in the WebView's Cache Storage (`transformers-cache`). Measured in desktop
+  Chromium: ~5 tok/s with 4 threads; phones vary. If the renderer dies (out of
+  memory), MainActivity recreates the WebView instead of crashing.
+- **Screen:** edge to edge; the native side reports bar sizes as CSS vars
+  `--safe-top/right/bottom/left` and shrinks the WebView above the keyboard.
+  Body classes: `platform-android`, and `handheld` (touch device, set from
+  `sound.handheld`). Back → `window.prismBack()` (closes the sound panel, then
+  goes Home, else Android leaves the app).
+- **Responsive CSS** (shell in `core/styles.css`, each module at the end of its
+  `style.css`), shared breakpoints:
+  - phone: `(max-width: 599px), (max-width: 760px) and (orientation: portrait)`
+    → bottom tab bar, compact list cards on Home, compact module heads;
+  - landscape phone: `(max-height: 520px) and (min-width: 600px)` → slim rail;
+  - stack: `(max-width: 1000px) and (hover: none), (max-width: 760px), (max-height:
+    520px) and (min-width: 600px)` → two-column modules become one column;
+  - keyboard open: `(max-width: 760px) and (orientation: portrait) and
+    (max-height: 560px)` → tab bar and module heads hide;
+  - `(pointer: coarse)` → finger-sized targets. Desktop is untouched.
+- **Touch:** on handhelds `focus()` on text fields only works while the keyboard
+  is already up (modules focus their inputs after intros, which would pop the
+  keyboard); click sounds play on tap (`click`), not on touch-down, so scrolling
+  is silent; tilt/magnetic/hover sounds ignore touch.
+- **Sound on handhelds** (`sound.handheld`): highpass at 110 Hz plus a
+  "virtual bass" path (lowpass → asymmetric soft-clip → bandpass ~520 Hz) so
+  low tones are heard on phone speakers, a shorter drier reverb, harder
+  compression, highshelf −4 dB at 7.5 kHz. Haptics via `AndroidBridge.haptic`
+  (`HAPTICS` map in sound.js: clicks/toggles tick, press, stamp heavy,
+  error/success patterns), toggle "Vibration" in the speaker menu. Typing
+  clicks default off. The AudioContext suspends while the app is hidden.
+- **Testing:** serve `src/` with the generated `index.html`/`modules.json`/
+  `android/` and COOP/COEP headers to Playwright Chromium with phone/tablet
+  emulation (`isMobile`, `hasTouch`) and a fake `window.AndroidBridge`.
+  Building the APK needs the Android SDK (platform 35) and JDK 17+.
 
 ## Packaging details (each one fixed a real problem)
 

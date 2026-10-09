@@ -11,6 +11,7 @@ const GLYPHS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789#$%&*+=<>/\\' + BRAILLE_GLYP
 export function tilt(el, { max = 10, scale = 1.02, perspective = 900 } = {}) {
   let raf = 0;
   const move = (e) => {
+    if (e.pointerType === 'touch') return; // a finger dragging to scroll shouldn't twist cards
     const r = el.getBoundingClientRect();
     const px = (e.clientX - r.left) / r.width;
     const py = (e.clientY - r.top) / r.height;
@@ -41,6 +42,7 @@ export function tilt(el, { max = 10, scale = 1.02, perspective = 900 } = {}) {
 /** Elements that drift toward the pointer when it is near. */
 export function magnetic(el, { strength = 0.3 } = {}) {
   const move = (e) => {
+    if (e.pointerType === 'touch') return;
     const r = el.getBoundingClientRect();
     const dx = e.clientX - (r.left + r.width / 2);
     const dy = e.clientY - (r.top + r.height / 2);

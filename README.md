@@ -1,7 +1,7 @@
 # Prism
 
-A modular desktop workspace with a live 3D background, built on Electron and
-three.js and packaged as an AppImage. Every page is a **module**: a
+A modular workspace with a live 3D background, built on Electron and
+three.js and packaged as a Linux AppImage and an Android app. Every page is a **module**: a
 self-contained folder the shell finds when it starts. Nothing in the shell is
 tied to one feature.
 
@@ -10,13 +10,18 @@ It ships with eight modules: **Text to Braille**, **Text to Base64**, **Text to 
 
 ## Download
 
-The latest AppImage is on the repository's **Releases** page (`Prism-<version>-x86_64.AppImage`). Releases are built and published automatically by GitHub Actions whenever the version in `package.json` changes.
+The latest version is on the repository's **Releases** page:
+
+- **Linux:** `Prism-<version>-x86_64.AppImage`
+- **Android 7.0+** (phones and tablets): `Prism-<version>.apk`. Open it on the device and allow installing from your browser/file manager. See [`android version/README.md`](android%20version/README.md).
+
+Releases are built and published automatically by GitHub Actions whenever the version in `package.json` changes.
 
 ## Run the AppImage
 
 ```bash
-chmod +x dist/Prism-1.1.0-x86_64.AppImage
-./dist/Prism-1.1.0-x86_64.AppImage
+chmod +x dist/Prism-<version>-x86_64.AppImage
+./dist/Prism-<version>-x86_64.AppImage
 ```
 
 The AppImage uses the static type 2 runtime (`build.toolsets.appimage: "1.0.3"`),
@@ -41,6 +46,7 @@ Node.js is installed locally in `.tools/node` (nothing is installed system-wide)
 export PATH="$PWD/.tools/node/bin:$PATH"
 npm start          # run the app
 npm run dist       # build dist/Prism-<version>-x86_64.AppImage
+npm run android    # build the Android APK (needs the Android SDK; see android version/README.md)
 ```
 
 Shortcuts: `F12` / `Ctrl+Shift+I` open DevTools, `Ctrl+R` reloads, `Esc` returns to Home.
@@ -121,6 +127,8 @@ export default {
 | `ctx.sound.play(name, { x, ... })` | a synthesized sound effect (`x` pans it to that screen position); `ctx.sound.sequence([{ at, name }])` plays a timeline and returns `{ stop() }` |
 
 Sound comes for free with the shared effects: `burst`, `scramble`, `scene.pulse` and `scene.warp` play matching sounds (pass `silent: true` to `burst`/`scramble` to skip them), and the shell adds sounds for clicks, hovers, typing and navigation. The presets live in `src/core/sound.js`.
+
+On phones and tablets (`ctx.sound.handheld` is true) the same sounds are re-voiced for small speakers and key moments also buzz (`ctx.sound.haptic('tick' | 'press' | 'heavy' | 'success' | 'error')`); modules don't need to do anything. Modules also run in the Android app, so their CSS should end with a small "phones and tablets" section using the shared breakpoints listed in `HANDOFF.md` (Android app → Responsive CSS).
 | `ctx.toast(message)` | notification pill |
 | `ctx.storage.get/set/remove(key)` | JSON storage kept separate for each module |
 | `ctx.navigate(id)` | go to another module (or `'home'`) |

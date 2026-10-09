@@ -10,6 +10,27 @@ const stage = document.getElementById('stage');
 const dock = document.getElementById('dock');
 const crumb = document.getElementById('crumb');
 
+// 'desktop' (Electron) or 'android' (the WebView app in "android version/").
+const PLATFORM = window.prism?.platform || 'desktop';
+document.body.classList.add(`platform-${PLATFORM}`);
+document.body.classList.toggle('handheld', sound.handheld);
+const CAN_ADD_MODULES = typeof window.prism?.openModulesFolder === 'function';
+
+// On touch screens a focused text box raises the on-screen keyboard. Modules
+// focus their input after intros, samples and mode switches, which on a phone
+// would cover half the screen uninvited, so there focus only moves while the
+// keyboard is already up (and never scrolls the page to get there).
+if (sound.handheld) {
+  for (const proto of [HTMLTextAreaElement.prototype, HTMLInputElement.prototype]) {
+    const focus = proto.focus;
+    proto.focus = function (opts) {
+      const a = document.activeElement;
+      const typing = a instanceof HTMLTextAreaElement || (a instanceof HTMLInputElement && /^(text|search|)$/.test(a.type));
+      if (a === this || typing) focus.call(this, { ...opts, preventScroll: true });
+    };
+  }
+}
+
 const scene = createScene(document.getElementById('bg'));
 let modules = [];
 let current = { id: null, cleanup: null };
@@ -131,16 +152,20 @@ function buildDock() {
     btn.style.setProperty('--btn-accent', meta.accent || DEFAULT_ACCENT);
     dock.appendChild(btn);
   }
-  const spacer = document.createElement('div');
-  spacer.className = 'dock-spacer';
-  dock.appendChild(spacer);
-  dock.appendChild(dockButton({ id: '', label: 'Reload modules', html: RELOAD_ICON, onClick: reloadModules }));
-  dock.appendChild(dockButton({ id: '', label: 'Open modules folder', html: FOLDER_ICON, onClick: openModulesFolder }));
+  if (CAN_ADD_MODULES) {
+    const spacer = document.createElement('div');
+    spacer.className = 'dock-spacer';
+    dock.appendChild(spacer);
+    dock.appendChild(dockButton({ id: '', label: 'Reload modules', html: RELOAD_ICON, onClick: reloadModules }));
+    dock.appendChild(dockButton({ id: '', label: 'Open modules folder', html: FOLDER_ICON, onClick: openModulesFolder }));
+  }
   markActive();
 }
 
 function markActive() {
   dock.querySelectorAll('.dock-btn').forEach((b) => b.classList.toggle('active', b.dataset.id === current.id));
+  // The bottom tab bar on phones scrolls sideways: keep the open module in view.
+  dock.querySelector('.dock-btn.active')?.scrollIntoView?.({ block: 'nearest', inline: 'nearest', behavior: 'smooth' });
 }
 
 async function openModulesFolder() {
@@ -201,7 +226,7 @@ async function navigate(id, { force = false } = {}) {
     crumb.textContent = '';
     setAccent(DEFAULT_ACCENT);
     scene.setFocus('home');
-    current.cleanup = renderHome(view, { modules, fx, navigate, openModulesFolder, iconMarkup });
+    current.cleanup = renderHome(view, { modules, fx, navigate, openModulesFolder: CAN_ADD_MODULES ? openModulesFolder : null, iconMarkup });
     return;
   }
 
@@ -248,22 +273,51 @@ addEventListener('keydown', (e) => {
   if (e.key === 'Escape' && current.id !== 'home' && !e.defaultPrevented) navigate('home');
 });
 
+/**
+ * The Android back button/gesture. Returns true when the app handled it
+ * (closed a panel, went home) and false when the system should leave the app.
+ */
+window.prismBack = () => {
+  const pop = document.getElementById('sound-pop');
+  if (pop && !pop.hidden) {
+    pop.hidden = true;
+    sound.play('click', { pitch: 0.8 });
+    return true;
+  }
+  if (current.id && current.id !== 'home') {
+    document.activeElement?.blur?.();
+    navigate('home');
+    return true;
+  }
+  return false;
+};
+
 // ---------------------------------------------------------------------------
 // Sounds for every click, hover and keystroke
 // ---------------------------------------------------------------------------
 const CLICKABLE = 'button, [role="tab"], [role="radio"], summary, a[href], .dg-key';
-addEventListener('pointerdown', (e) => {
-  if (e.button !== 0) return;
-  const el = e.target.closest(CLICKABLE);
+// Mouse and pen click on press, like a real button. A finger on a touch screen
+// may be starting a scroll, so taps sound on the click that follows instead.
+function pressSound(e) {
+  const el = e.target.closest?.(CLICKABLE);
   if (!el || el.disabled) return;
   const x = e.clientX;
   if (el.matches('[class*="-send"], .cp-forge')) sound.play('press', { x });
   else if (el.hasAttribute('aria-pressed')) sound.play('toggle', { on: el.getAttribute('aria-pressed') !== 'true', x });
   else if (el.matches('[role="tab"], [role="radio"]')) sound.play('click', { pitch: 1.25, x });
   else sound.play('click', { pitch: 0.92 + Math.random() * 0.16, x });
+}
+let lastPointer = 'mouse';
+addEventListener('pointerdown', (e) => {
+  lastPointer = e.pointerType;
+  if (e.button === 0 && e.pointerType !== 'touch') pressSound(e);
+}, true);
+addEventListener('click', (e) => {
+  if (lastPointer === 'touch' && e.isTrusted) pressSound(e);
 }, true);
 
 addEventListener('pointerover', (e) => {
+  if (e.pointerType === 'touch') return; // a tap is not a hover
   const el = e.target.closest('.dock-btn, .mcard');
   if (el && !el.contains(e.relatedTarget)) sound.play('hover', { x: e.clientX });
 });
@@ -285,6 +339,8 @@ addEventListener('keydown', (e) => {
   const vol = pop.querySelector('[data-sound="volume"]');
   const mute = pop.querySelector('[data-sound="mute"]');
   const typing = pop.querySelector('[data-sound="typing"]');
+  const haptics = pop.querySelector('[data-sound="haptics"]');
+  if (haptics) haptics.hidden = !sound.handheld;
   const render = () => {
     const st = sound.settings;
     const level = st.muted ? 0 : st.volume;
@@ -295,6 +351,7 @@ addEventListener('keydown', (e) => {
     mute.setAttribute('aria-pressed', String(!st.muted));
     mute.textContent = st.muted ? 'Sound off' : 'Sound on';
     typing.setAttribute('aria-pressed', String(st.typing));
+    haptics?.setAttribute('aria-pressed', String(st.haptics));
   };
   btn.addEventListener('click', () => {
     pop.hidden = !pop.hidden;
@@ -318,6 +375,11 @@ addEventListener('keydown', (e) => {
   typing.addEventListener('click', () => {
     sound.setTyping(!sound.settings.typing);
     render();
+  });
+  haptics?.addEventListener('click', () => {
+    sound.setHaptics(!sound.settings.haptics);
+    render();
+    sound.haptic('press');
   });
   addEventListener('pointerdown', (e) => {
     if (!pop.hidden && !pop.contains(e.target) && !btn.contains(e.target)) pop.hidden = true;

@@ -1,10 +1,11 @@
-# Builds the AppImage and publishes it as a GitHub release.
+# Builds the Linux AppImage and the Android APK and publishes both as one
+# GitHub release.
 #
 # Runs whenever package.json changes (so bumping "version" is all it takes to
 # ship), and can also be started by hand from the Actions tab. If a release
 # for the current version already exists, the build is skipped.
 # The release description comes from release-notes/<version>.md when present.
-name: Release AppImage
+name: Release AppImage and APK
 
 on:
   push:
@@ -59,16 +60,33 @@ jobs:
         if: steps.check.outputs.exists == 'false'
         run: npm run dist -- --publish never
 
-      - name: Checksum and release notes
+      - uses: actions/setup-java@v5
+        if: steps.check.outputs.exists == 'false'
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Build the Android app
+        if: steps.check.outputs.exists == 'false'
+        # The runner image ships the Android SDK (ANDROID_HOME); Gradle fetches
+        # any missing SDK parts itself. Signed with the key in "android version/keystore".
+        run: |
+          npm run android:web
+          cd "android version"
+          ./gradlew assembleRelease --no-daemon --stacktrace
+          cp "app/build/outputs/apk/release/Prism-${{ steps.version.outputs.version }}.apk" ../dist/
+
+      - name: Checksums and release notes
         if: steps.check.outputs.exists == 'false'
         id: files
         run: |
           VERSION="${{ steps.version.outputs.version }}"
           FILE="Prism-${VERSION}-x86_64.AppImage"
-          (cd dist && sha256sum "$FILE" > "$FILE.sha256")
+          APK="Prism-${VERSION}.apk"
+          (cd dist && sha256sum "$FILE" > "$FILE.sha256" && sha256sum "$APK" > "$APK.sha256")
           {
             if [ -f "release-notes/${VERSION}.md" ]; then cat "release-notes/${VERSION}.md"; echo; fi
-            echo "## Install"
+            echo "## Install on Linux"
             echo
             echo '```bash'
             echo "chmod +x ${FILE}"
@@ -77,9 +95,16 @@ jobs:
             echo
             echo "Linux x86_64 (Ubuntu 22.04+, Zorin, Arch, Fedora…). Your history and downloaded AI model are kept between versions."
             echo
-            echo "SHA-256: \`$(cut -d' ' -f1 "dist/$FILE.sha256")\`"
+            echo "## Install on Android"
+            echo
+            echo "Download \`${APK}\` on the phone or tablet, open it and allow installing from your browser or file manager when Android asks. Android 7.0 or newer; keep *Android System WebView* (or Chrome) updated from the Play Store. Installing a newer APK over the old one keeps your history."
+            echo
+            echo "SHA-256:"
+            echo "- \`${FILE}\`: \`$(cut -d' ' -f1 "dist/$FILE.sha256")\`"
+            echo "- \`${APK}\`: \`$(cut -d' ' -f1 "dist/$APK.sha256")\`"
           } > release-body.md
           echo "file=$FILE" >> "$GITHUB_OUTPUT"
+          echo "apk=$APK" >> "$GITHUB_OUTPUT"
 
       - name: Publish the release
         if: steps.check.outputs.exists == 'false'
@@ -93,3 +118,5 @@ jobs:
           files: |
             dist/${{ steps.files.outputs.file }}
             dist/${{ steps.files.outputs.file }}.sha256
+            dist/${{ steps.files.outputs.apk }}
+            dist/${{ steps.files.outputs.apk }}.sha256

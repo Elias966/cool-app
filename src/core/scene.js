@@ -35,7 +35,10 @@ export function createScene(canvas) {
   }
 
   const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
-  renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5));
+  // Phones and tablets have dense screens but small GPUs; the background is soft
+  // (bloom, stars), so a lower render scale looks the same and saves battery.
+  const handheld = matchMedia('(pointer: coarse)').matches && !matchMedia('(pointer: fine)').matches;
+  renderer.setPixelRatio(Math.min(devicePixelRatio, handheld ? 1.25 : 1.5));
   renderer.setClearColor(0x05060a, 1);
 
   const scene = new THREE.Scene();

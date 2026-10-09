@@ -5,8 +5,13 @@
 // Each format pre-fills the start of the answer with the placeholder already
 // in place, so even a tiny model reliably works the braille in.
 
-export const AI_SPEC = { model: 'onnx-community/Qwen2.5-1.5B-Instruct', dtype: 'q4f16' };
-export const AI_SIZE_MB = 1222;
+// The Android app runs the model in the WebView (WebAssembly, phone CPU), where
+// the 1.5B model is too slow and too big for many phones, so it uses the 0.5B.
+const ANDROID = globalThis.prism?.platform === 'android';
+export const AI_SPEC = ANDROID
+  ? { model: 'onnx-community/Qwen2.5-0.5B-Instruct', dtype: 'q8' }
+  : { model: 'onnx-community/Qwen2.5-1.5B-Instruct', dtype: 'q4f16' };
+export const AI_SIZE_MB = ANDROID ? 520 : 1222;
 /** Short display name, e.g. "Qwen2.5-1.5B", taken from AI_SPEC so the UI always shows the model actually in use. */
 export const AI_LABEL = AI_SPEC.model.split('/').pop().replace(/-Instruct$/i, '');
 export const SLOT = '⁣'; // invisible marker stored in history where the braille goes

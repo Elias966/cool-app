@@ -394,3 +394,85 @@
   .ly-stack { max-height: 172px; }
   .ly-tower-wrap { height: 100px; }
 }
+
+/* ------------------------------------------------- phones and tablets */
+/* Touch: finger-sized chain tools, chips and tiles; sticky hovers stay put. */
+@media (pointer: coarse) {
+  .ly-chip, .ly-switch button { min-height: 38px; }
+  .ly-panel-tools .ly-chip, .ly-preset { padding: 7px 13px; font-size: 12.5px; }
+  .ly-card-actions .ly-chip, .ly-bar .ly-chip { padding: 8px 13px; }
+  .ly-link { padding: 4px 4px 4px 8px; }
+  .ly-link-glyph { height: 30px; }
+  .ly-link-tools button { width: 38px; height: 38px; font-size: 16px; border-radius: 9px; }
+  .ly-tile { min-height: 46px; padding: 8px; }
+  .ly-link:hover, .ly-plate:hover, .ly-chip:hover { transform: none; }
+}
+.handheld .ly-hint { display: none; }
+
+/* Stacked: one scrolling column. The main grid and its left column dissolve so
+   the pieces can be reordered: head, feed, console, live stack, chain + palette. */
+@media (max-width: 1000px) and (hover: none), (max-width: 760px), (max-height: 520px) and (min-width: 600px) {
+  .ly { overflow: hidden auto; gap: 12px; padding: 14px 14px 18px; }
+  .ly > *, .ly-stack, .ly-feed, .ly-side { flex: none; }
+  .ly-main, .ly-left, .ly-head-main { display: contents; }
+  .ly:not(.ly-ready) :is(.ly-stack, .ly-feed, .ly-side) { opacity: 0; }
+  .ly-head { order: 0; }
+  .ly-feed { order: 1; height: clamp(200px, 100svh - 510px, 560px); }
+  .ly-feed:has(> .ly-empty:not([hidden])) { height: auto; } /* nothing yet: just the samples */
+  .ly-console { order: 2; }
+  .ly-stack { order: 3; max-height: none; overflow: visible; }
+  .ly-side { order: 4; overflow: visible; padding-right: 0; }
+  .ly-badge { display: none; } /* the title bar already says where you are */
+  .ly-head { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px 12px; align-items: center; }
+  .ly-gauge { grid-area: 1 / 2; }
+  .ly-sub { grid-column: 1 / -1; }
+  .ly-title { margin: 2px 0 0; font-size: 30px; }
+  .ly-sub { font-size: 12.5px; line-height: 1.45; }
+  .ly-gauge { gap: 6px; }
+  .ly-tower-wrap { display: block; width: 74px; height: 70px; }
+  .ly-tower { scale: 0.5; }
+  .ly-gauge-num { min-width: 0; }
+  .ly-gauge-num b { font-size: 34px; }
+  .ly-gauge-num span { font-size: 9.5px; letter-spacing: 0.1em; }
+  .ly-plate { grid-template-columns: 32px 80px minmax(0, 1fr) auto; gap: 8px; padding-right: 10px; }
+  .ly-empty { min-height: 0; padding: 18px 0 6px; }
+  .ly-card { padding: 13px 14px 11px; border-radius: 18px; }
+  .ly-card-head { flex-direction: column; gap: 4px; }
+  .ly-card-steps li { grid-template-columns: minmax(0, 1fr); gap: 3px; }
+  .ly-out { font-size: 13.5px; }
+  .ly-console { padding: 10px 12px 10px 16px; border-radius: 20px; }
+  .ly-input, .ly-decoding .ly-input { font-size: 16px; }
+  .ly-inputrow { gap: 10px; }
+  .ly-send { width: 50px; padding: 0; justify-content: center; }
+  .ly-send span { display: none; }
+  .ly-bar { gap: 8px 10px; }
+}
+@media (max-width: 599px), (max-width: 760px) and (orientation: portrait) {
+  .ly-switch { flex: 1 1 auto; }
+  .ly-switch button { flex: 1; }
+  .ly-counter { display: none; } /* the card meta repeats it */
+  .ly-clear { margin-left: auto; }
+}
+@media (max-width: 760px) and (orientation: portrait) and (max-height: 700px) {
+  .ly-sub { display: none; } /* small phones: feed and console come first */
+}
+/* Tablets and landscape phones are wide enough for chain and palette side by side. */
+@media (min-width: 600px) and (max-width: 1000px) and (hover: none), (min-width: 600px) and (max-width: 760px), (max-height: 520px) and (min-width: 600px) {
+  .ly-side { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: start; }
+}
+/* Landscape phones: a one-line head and a feed that leaves room for the console. */
+@media (max-height: 520px) and (min-width: 600px) {
+  .ly-sub, .ly-tower-wrap { display: none; }
+  .ly-head { align-items: center; }
+  .ly-title { font-size: 24px; margin: 0; }
+  .ly-gauge-num { flex-direction: row; align-items: baseline; gap: 8px; }
+  .ly-gauge-num b { font-size: 24px; }
+  .ly-gauge-num span, .ly-gauge-num em { margin: 0; }
+  .ly-feed { height: clamp(160px, 100svh - 230px, 400px); }
+}
+/* The keyboard is open: keep the feed and the text box, drop the rest. */
+@media (max-width: 760px) and (orientation: portrait) and (max-height: 560px) {
+  .ly { overflow: clip; }
+  .ly-head, .ly-stack, .ly-side { display: none; }
+  .ly-feed, .ly-feed:has(> .ly-empty:not([hidden])) { flex: 1 1 0; min-height: 0; height: auto; }
+}

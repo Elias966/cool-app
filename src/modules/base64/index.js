@@ -535,7 +535,8 @@ export default {
       $('.b64-sub').innerHTML = mode === 'encode'
         ? 'Every <b>3 bytes</b> become <b>4 characters</b>. Type and watch it happen.'
         : 'Every <b>4 characters</b> turn back into <b>3 bytes</b>. Paste Base64 and read it.';
-      input.placeholder = mode === 'encode' ? 'Type text to encode and press Enter…' : 'Paste Base64 (or a data: URI) and press Enter…';
+      const enter = document.body.classList.contains('handheld') ? '' : ' and press Enter'; // no Enter key hint on touch screens
+      input.placeholder = mode === 'encode' ? `Type text to encode${enter}…` : `Paste Base64 (or a data: URI)${enter}…`;
       input.setAttribute('aria-label', mode === 'encode' ? 'Text to encode' : 'Base64 to decode');
       sendBtn.querySelector('span').textContent = mode === 'encode' ? 'Encode' : 'Decode';
       $('.b64-verb').textContent = mode === 'encode' ? 'encode' : 'decode';

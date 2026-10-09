@@ -347,12 +347,88 @@ function fade(c, gains) {
   }
 }
 
+// Phones and tablets: tiny speakers, touch screens, a buzzer. See `context()` and `haptic()`.
+const HANDHELD = globalThis.prism?.platform === 'android' || Boolean(globalThis.matchMedia?.('(pointer: coarse)').matches && !globalThis.matchMedia('(pointer: fine)').matches);
+
+// Presets that also give a short buzz on handhelds (when haptics are on).
+const HAPTICS = { click: 'tick', toggle: 'tick', navIn: 'tick', navHome: 'tick', lock: 'tick', press: 'press', stamp: 'heavy', drop: 'tick', error: 'error', fail: 'error', success: 'success' };
+
+/** Soft-clip curve for the bass enhancer; the small asymmetry adds even harmonics (the octave). */
+function harmonicCurve(drive = 4) {
+  const n = 1024;
+  const curve = new Float32Array(n);
+  for (let i = 0; i < n; i++) {
+    const x = (i / (n - 1)) * 2 - 1;
+    curve[i] = Math.tanh(drive * x) / Math.tanh(drive) + 0.25 * x * x;
+  }
+  return curve;
+}
+
+/**
+ * The mixing chain every preset plays into: `out` (dry) and `rev` (reverb send)
+ * → … → `comp` (connect it to the speakers).
+ *
+ * Handheld: phone speakers can't move air below ~200 Hz, so the low end is cut
+ * before it rattles them and rebuilt from its harmonics (a soft-clipped copy,
+ * band-passed around 500 Hz; the ear fills in the missing fundamental, so deep
+ * thumps still read as deep). The reverb is shorter and drier so fast sounds
+ * stay crisp on one small speaker, the top is softened, and the compressor
+ * works harder so quiet details survive a noisy room.
+ */
+function buildChain(ac, handheld) {
+  const comp = ac.createDynamicsCompressor();
+  comp.threshold.value = handheld ? -20 : -14;
+  comp.knee.value = 12;
+  comp.ratio.value = handheld ? 6 : 4;
+  comp.attack.value = 0.003;
+  comp.release.value = 0.2;
+  const out = ac.createGain();
+  out.gain.value = handheld ? 1.05 : 0.9;
+  const rev = ac.createConvolver();
+  rev.buffer = handheld ? reverbImpulse(ac, 1.5, 3.6) : reverbImpulse(ac);
+  const revOut = ac.createGain();
+  revOut.gain.value = handheld ? 0.32 : 0.55;
+  rev.connect(revOut);
+  if (!handheld) {
+    out.connect(comp);
+    revOut.connect(comp);
+    return { out, rev, comp };
+  }
+  const bus = ac.createGain();
+  out.connect(bus);
+  revOut.connect(bus);
+  const hp = ac.createBiquadFilter();
+  hp.type = 'highpass';
+  hp.frequency.value = 110;
+  hp.Q.value = 0.7;
+  const air = ac.createBiquadFilter();
+  air.type = 'highshelf';
+  air.frequency.value = 7500;
+  air.gain.value = -4; // noise clicks get harsh on small drivers
+  bus.connect(hp).connect(air).connect(comp);
+  const lows = ac.createBiquadFilter();
+  lows.type = 'lowpass';
+  lows.frequency.value = 240;
+  const shaper = ac.createWaveShaper();
+  shaper.curve = harmonicCurve(5);
+  shaper.oversample = '2x';
+  const harm = ac.createBiquadFilter();
+  harm.type = 'bandpass';
+  harm.frequency.value = 520;
+  harm.Q.value = 0.6;
+  const harmGain = ac.createGain();
+  harmGain.gain.value = 0.55;
+  bus.connect(lows).connect(shaper).connect(harm).connect(harmGain).connect(comp);
+  return { out, rev, comp };
+}
+
 // Minimum time between two plays of a preset (ms), so fast repeats don't pile up.
 const THROTTLE = { sparkle: 45, key: 18, type: 35, hover: 55, pulse: 90, warp: 220, click: 25, scrambleTick: 0, tumbler: 20, chisel: 35, bleep: 28, chime: 30, toast: 120, error: 150 };
 
 // ---------------------------------------------------------------- the engine
 function createSound() {
-  let settings = { volume: 0.7, muted: false, typing: true };
+  // Phone keyboards click on their own, so typing sounds start off there.
+  let settings = { volume: 0.7, muted: false, typing: !HANDHELD, haptics: true };
   try {
     settings = { ...settings, ...JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}') };
   } catch {
@@ -368,20 +444,7 @@ function createSound() {
     const ac = new AC({ latencyHint: 'interactive' });
     const master = ac.createGain();
     master.gain.value = settings.muted ? 0 : settings.volume;
-    const comp = ac.createDynamicsCompressor();
-    comp.threshold.value = -14;
-    comp.knee.value = 12;
-    comp.ratio.value = 4;
-    comp.attack.value = 0.003;
-    comp.release.value = 0.2;
-    const out = ac.createGain();
-    out.gain.value = 0.9;
-    const rev = ac.createConvolver();
-    rev.buffer = reverbImpulse(ac);
-    const revOut = ac.createGain();
-    revOut.gain.value = 0.55;
-    out.connect(comp);
-    rev.connect(revOut).connect(comp);
+    const { out, rev, comp } = buildChain(ac, HANDHELD);
     comp.connect(master).connect(ac.destination);
     c = { ac, out, rev, master };
     return c;
@@ -393,10 +456,33 @@ function createSound() {
   };
   addEventListener('pointerdown', wake, true);
   addEventListener('keydown', wake, true);
+  // Go quiet (and stop using the audio hardware) while the app is in the background.
+  document.addEventListener('visibilitychange', () => {
+    if (!c) return;
+    if (document.hidden) c.ac.suspend().catch(() => {});
+    else c.ac.resume().catch(() => {});
+  });
+
+  // Short buzzes on handhelds. The Android app routes them through the system's
+  // haptic engine (which also honours the phone's own touch-feedback setting).
+  let lastBuzz = 0;
+  function haptic(kind) {
+    if (!HANDHELD || !settings.haptics || document.hidden) return;
+    const now = performance.now();
+    if (now - lastBuzz < 45) return;
+    lastBuzz = now;
+    try {
+      if (globalThis.AndroidBridge?.haptic) globalThis.AndroidBridge.haptic(kind);
+      else navigator.vibrate?.({ tick: 6, press: 14, heavy: 24, error: [16, 50, 16], success: [8, 40, 12] }[kind] || 8);
+    } catch {
+      /* no vibrator */
+    }
+  }
 
   const panFor = (x) => (typeof x === 'number' && innerWidth ? clamp((x / innerWidth) * 2 - 1, -1, 1) * 0.7 : 0);
 
   function play(name, opts = {}) {
+    if (HAPTICS[name] && !opts.silentHaptic) haptic(HAPTICS[name]);
     if (settings.muted || !settings.volume) return null;
     const fn = PRESETS[name];
     if (!fn) return null;
@@ -473,6 +559,9 @@ function createSound() {
     play,
     sequence,
     scramble,
+    haptic,
+    /** True on phones and tablets: the sound is tuned for small speakers and buzzes are available. */
+    handheld: HANDHELD,
     get settings() {
       return { ...settings };
     },
@@ -489,15 +578,35 @@ function createSound() {
       settings.typing = Boolean(on);
       save();
     },
+    setHaptics(on) {
+      settings.haptics = Boolean(on);
+      save();
+    },
     /** For the tests: render one preset offline and return its peak and RMS level. */
-    async measure(name, opts = {}, seconds = 1.5) {
+    async measure(name, opts = {}, seconds = 1.5, { chain = false, handheld = HANDHELD, above = 0 } = {}) {
       const OAC = globalThis.OfflineAudioContext;
       const ac = new OAC(2, Math.ceil(44100 * seconds), 44100);
-      const out = ac.createGain();
-      const rev = ac.createConvolver();
-      rev.buffer = reverbImpulse(ac, 1.2);
-      out.connect(ac.destination);
-      rev.connect(ac.destination);
+      let out, rev;
+      let dest = ac.destination;
+      if (above) {
+        // measure only what is above `above` Hz (e.g. what a phone speaker can play)
+        dest = ac.createBiquadFilter();
+        dest.type = 'highpass';
+        dest.frequency.value = above;
+        dest.connect(ac.destination);
+      }
+      if (chain) {
+        // through the real mixing chain (compressor, and the phone EQ when handheld)
+        const built = buildChain(ac, handheld);
+        ({ out, rev } = built);
+        built.comp.connect(dest);
+      } else {
+        out = ac.createGain();
+        rev = ac.createConvolver();
+        rev.buffer = reverbImpulse(ac, 1.2);
+        out.connect(dest);
+        rev.connect(dest);
+      }
       PRESETS[name]({ ac, out, rev }, 0.01, opts);
       const buf = await ac.startRendering();
       const d = buf.getChannelData(0);

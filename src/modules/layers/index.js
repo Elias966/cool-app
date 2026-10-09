@@ -670,7 +670,8 @@ export default {
       $('.ly-sub').innerHTML = mode === 'encode'
         ? 'Stack encoders on the <b>same string</b>, one on top of the other. <b>Order</b> and <b>depth</b> change everything.'
         : 'Strip the layers back off, <b>last one first</b>, until the original text comes out.';
-      input.placeholder = mode === 'encode' ? 'Type text to wrap in layers and press Enter…' : 'Paste a layered string and press Enter…';
+      const enter = document.body.classList.contains('handheld') ? '' : ' and press Enter'; // no Enter key hint on touch screens
+      input.placeholder = mode === 'encode' ? `Type text to wrap in layers${enter}…` : `Paste a layered string${enter}…`;
       input.setAttribute('aria-label', mode === 'encode' ? 'Text to encode' : 'Layered string to decode');
       sendBtn.querySelector('span').textContent = mode === 'encode' ? 'Encode' : 'Peel';
       sendBtn.setAttribute('aria-label', mode === 'encode' ? 'Encode through the chain' : 'Peel the layers');

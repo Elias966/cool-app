@@ -307,3 +307,78 @@
 .b64-out-text { font: 600 19px/1.5 var(--font); letter-spacing: 0; color: #fff; text-shadow: 0 0 14px color-mix(in srgb, var(--accent) 35%, transparent); }
 .b64-out-hex { font: 600 14px/1.6 var(--mono); color: var(--pad); }
 .b64-binary-note { margin-top: 6px; font-size: 12px; color: var(--pad); }
+
+/* ------------------------------------------------- phones and tablets */
+/* Touch: chips, toggles and the direction switch get finger-sized; keyboard hints go. */
+@media (pointer: coarse) {
+  .b64-chip { min-height: 38px; }
+  .b64-mode { min-height: 36px; padding: 6px 12px; }
+  .b64-card-actions .b64-chip { padding: 8px 13px; }
+}
+.handheld .b64-hint { display: none; }
+
+/* Phones (portrait and landscape): one bit/sextet group at a time in a swipeable strip. */
+@media (max-width: 599px), (max-width: 760px) and (orientation: portrait), (max-height: 520px) and (min-width: 600px) {
+  .b64 { gap: 8px; padding: 10px 14px; overflow: hidden auto; }
+  .b64 > :not(.b64-rain) { flex: none; }
+  .b64-badge { display: none; } /* the title bar already says where you are */
+  .b64-title { margin: 0 0 4px; font-size: 28px; }
+  .b64-sub { font-size: 12.5px; }
+  .b64-pipe { padding: 9px 12px 11px; border-radius: 18px; }
+  .b64-pipe-legend { gap: 4px 12px; margin-bottom: 8px; font-size: 10.5px; }
+  .b64-pipe-legend span:first-child { display: none; } /* the byte cells label themselves */
+  .b64-groups {
+    display: grid; grid-auto-flow: column; grid-auto-columns: 100%; grid-template-rows: auto auto; gap: 0 10px; min-height: 0;
+    overflow-x: auto; scrollbar-width: none; scroll-snap-type: x mandatory; overscroll-behavior-x: contain;
+  }
+  .b64-groups::-webkit-scrollbar { display: none; }
+  .b64-groups:has(.b64-group + .b64-group) { grid-auto-columns: calc(100% - 26px); } /* the next group peeks in */
+  .b64-group { grid-row: 2; padding: 8px; border-radius: 12px; scroll-snap-align: start; }
+  .b64-grid { grid-template-columns: repeat(24, minmax(0, 1fr)); gap: 5px 1px; }
+  .b64-byte { height: 34px; }
+  .b64-bit { height: 19px; font-size: 9.5px; }
+  .b64-sextet { height: 40px; }
+  .b64-sextet b { font-size: 17px; }
+  .b64-more { grid-row: 1; grid-column: 1; justify-self: start; margin-bottom: 7px; padding: 3px 10px; font-size: 10.5px; }
+  .b64 > .b64-feed { flex: 1 0 0; min-height: 150px; padding: 12px 2px 8px; }
+  .b64-empty { min-height: 0; gap: 12px; }
+  .b64-card { padding: 14px 14px 12px; border-radius: 18px; }
+  .b64-card-head { flex-direction: column; gap: 4px; margin-bottom: 10px; }
+  .b64-out { max-height: 180px; padding: 10px 12px; font-size: 14.5px; }
+  .b64-out-text { font-size: 17px; }
+  .b64-console { padding: 8px 12px 10px 14px; border-radius: 20px; }
+  .b64-live { font-size: 14px; }
+  .b64-inputrow { gap: 10px; margin-top: 2px; }
+  .b64-input { min-height: 46px; padding: 11px 2px; font-size: 16px; }
+  .b64-send { height: 46px; width: 50px; padding: 0; justify-content: center; }
+  .b64-send span { display: none; }
+  .b64-bar { gap: 8px; margin-top: 6px; }
+  .b64-modes { flex: 1 1 100%; display: grid; grid-template-columns: 1fr 1fr; }
+  .b64-toggle { padding: 6px 11px; }
+}
+/* Portrait phones: the console sits right under the pipeline so both show without scrolling;
+   the history follows and fills what is left. */
+@media (max-width: 599px), (max-width: 760px) and (orientation: portrait) {
+  .b64-console { order: 1; }
+  .b64-feed { order: 2; }
+  .b64-bar:has(.b64-toggles:not([hidden])) .b64-counter { display: none; } /* no room next to the toggles */
+  .b64-clear { margin-left: auto; }
+}
+/* Landscape phones: pipeline on the left, feed and console on the right. */
+@media (max-height: 520px) and (min-width: 600px) {
+  .b64 { display: grid; grid-template: auto minmax(0, 1fr) auto / minmax(0, 300px) minmax(0, 1fr); gap: 10px 14px; overflow: clip; }
+  .b64-sub { display: none; }
+  .b64-title { margin: 0; font-size: 24px; }
+  .b64-head { grid-area: 1 / 1; }
+  .b64-pipe { grid-area: 2 / 1 / 4; align-self: start; }
+  .b64 > .b64-feed { grid-area: 1 / 2 / 3; min-height: 0; }
+  .b64-console { grid-area: 3 / 2; }
+  .b64-live { display: none; } /* the pipeline beside it already shows the text as it encodes */
+  .b64-inputrow { margin-top: 0; }
+  .b64-modes { flex: 0 1 auto; }
+}
+/* The keyboard is open: keep the text box and the feed, drop the rest. */
+@media (max-width: 760px) and (orientation: portrait) and (max-height: 560px) {
+  .b64-head, .b64-pipe { display: none; }
+  .b64 > .b64-feed { min-height: 120px; }
+}

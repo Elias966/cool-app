@@ -350,3 +350,99 @@
   text-shadow: 0 0 14px color-mix(in srgb, var(--accent) 45%, transparent);
 }
 .dg-chip-glyphs { font-family: var(--glyph); font-size: 15px; letter-spacing: 1px; }
+
+/* ------------------------------------------------- phones and tablets */
+/* Touch: finger-sized chips, tabs and keys; keyboard-only hints go. */
+@media (pointer: coarse) {
+  .dg-chip, .dg-mode { min-height: 38px; }
+  .dg-shift { padding: 6px 12px; }
+  .dg-card-actions .dg-chip { padding: 8px 13px; }
+  .dg-key { height: 40px; }
+}
+.handheld .dg-hint { display: none; }
+
+/* Stacked: one scrolling column. The first screen holds the head, history and
+   console (the root is a size container, so the history fills what is left);
+   live tiles, symbol keyboard and font notes follow below. */
+@media (max-width: 1000px) and (hover: none), (max-width: 760px), (max-height: 520px) and (min-width: 600px) {
+  .dg { --dg-chrome: 370px; gap: 12px; padding: 12px 16px 16px; overflow: hidden auto; overscroll-behavior: contain; container-type: size; }
+  .dg > * { flex: none; }
+  .dg-main, .dg-left { display: contents; }
+  .dg-head { order: 0; }
+  .dg-feed { order: 1; }
+  .dg-console { order: 2; }
+  .dg-stream { order: 3; }
+  .dg-side { order: 4; display: flex; flex-direction: column; min-height: auto; }
+  .dg:not(.dg-ready) :is(.dg-stream, .dg-feed, .dg-side) { opacity: 0; }
+  .dg-ready .dg-feed { animation: dgFade 0.8s ease-out 0.2s backwards; }
+  .dg-ready :is(.dg-stream, .dg-side) { animation: dgFade 0.8s ease-out 0.4s backwards; }
+  .dg-head { flex-direction: column; align-items: stretch; gap: 0; }
+  .dg-badge, .dg-sub { display: none; } /* the title bar already says where you are */
+  .dg-title { margin: 0; font-size: 28px; }
+  /* The font deck becomes a swipeable row of cards. */
+  .dg-deck {
+    overflow-x: auto; scrollbar-width: none; scroll-snap-type: x mandatory; scroll-padding-inline: 16px;
+    margin: 0 -16px; padding: 10px 16px 12px; gap: 10px;
+  }
+  .dg-deck::-webkit-scrollbar { display: none; }
+  .dg-font { flex: none; width: 102px; padding: 9px 8px 8px; scroll-snap-align: start; box-shadow: 0 8px 18px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.07); }
+  .dg-font[aria-checked='true'] { box-shadow: 0 0 16px color-mix(in srgb, var(--accent) 40%, transparent), inset 0 1px 0 rgba(255, 255, 255, 0.1); }
+  .dg-font-glyphs { font-size: 20px; }
+  .dg-feed { flex: none; height: clamp(200px, 100cqh - var(--dg-chrome), 640px); padding: 12px 2px 10px; }
+  .dg-card { padding: 14px 14px 12px; }
+  .dg-card-head { flex-direction: column; gap: 6px; }
+  .dg-out { font-size: 25px; }
+  .dg-console { padding: 8px 12px 8px 14px; border-radius: 20px; }
+  .dg-input { min-height: 46px; padding: 11px 2px; font-size: 16px; }
+  .dg-send { height: 46px; width: 50px; padding: 0; justify-content: center; }
+  .dg-send span { display: none; }
+  .dg-input::placeholder { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .dg-bar { gap: 8px 10px; margin-top: 6px; }
+  .dg-stream { min-height: 84px; max-height: 210px; padding: 12px; }
+  .dg-tile { width: 40px; height: 46px; }
+  .dg-face { font-size: 23px; }
+  .dg-info { overflow: visible; }
+  /* Keys share the row width instead of a fixed size. */
+  .dg { --kw: min(6vw, 40px); }
+  .dg-kb { padding: 12px 10px 14px; }
+  .dg-key { flex: 0 1 44px; width: auto; min-width: 0; }
+  .dg-space { width: 60%; flex: none; }
+}
+/* Portrait phones: slimmer font cards (the maker is in the font notes below). */
+@media (max-width: 599px), (max-width: 760px) and (orientation: portrait) {
+  .dg { --dg-chrome: 332px; }
+  .dg-counter { display: none; }
+  .dg-clear { margin-left: auto; }
+  .dg-console { padding: 8px 10px 8px 12px; }
+  .dg-mode { padding: 5px 9px; }
+  .dg-font { width: 96px; padding: 8px 6px 7px; }
+  .dg-font-maker { display: none; }
+  .dg-feed { height: clamp(180px, 100cqh - var(--dg-chrome), 640px); }
+}
+/* Landscape phones: two columns. History over the console on the left (one
+   screen tall), font deck, live tiles, keyboard and notes scroll on the right. */
+@media (max-height: 520px) and (min-width: 600px) {
+  .dg {
+    --dg-chrome: 172px; padding: 8px 16px 12px;
+    display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); grid-template-rows: auto auto 1fr; align-content: start; gap: 10px 14px;
+  }
+  .dg-feed { grid-area: 1 / 1; height: max(130px, 100cqh - var(--dg-chrome)); }
+  .dg-console { grid-area: 2 / 1 / span 2; align-self: start; }
+  .dg-head { grid-area: 1 / 2; align-self: center; }
+  .dg-stream { grid-area: 2 / 2; }
+  .dg-side { grid-area: 3 / 2; }
+  .dg-title { font-size: 24px; }
+  .dg-deck { margin-right: -16px; padding: 8px 16px 10px 0; scroll-padding-inline: 0; }
+  .dg-font { width: 92px; padding: 6px 6px 5px; }
+  .dg-font-glyphs { font-size: 16px; }
+  .dg-font-maker { display: none; }
+  .dg-live { height: 24px; line-height: 24px; font-size: 17px; }
+  .dg-counter { display: none; }
+  .dg-clear { margin-left: auto; }
+}
+/* The keyboard is open: keep the history and the text box, drop the rest. */
+@media (max-width: 760px) and (orientation: portrait) and (max-height: 560px) {
+  .dg { overflow: clip; padding-top: 10px; }
+  .dg-head, .dg-stream, .dg-side { display: none; }
+  .dg-feed { flex: 1 1 0; height: auto; min-height: 0; }
+}

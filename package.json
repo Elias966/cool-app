@@ -11,7 +11,9 @@
     "prestart": "node scripts/vendor.js",
     "start": "electron .",
     "predist": "node scripts/vendor.js",
-    "dist": "electron-builder --linux AppImage"
+    "dist": "electron-builder --linux AppImage",
+    "android:web": "node scripts/android.js",
+    "android": "npm run android:web && cd \"android version\" && ./gradlew assembleRelease"
   },
   "build": {
     "appId": "com.theking.prism",
@@ -59,6 +61,7 @@
   "devDependencies": {
     "electron": "^44.7.0",
     "electron-builder": "^26.15.3",
+    "esbuild": "^0.25.12",
     "three": "^0.186.1"
   },
   "desktopName": "prism.desktop",

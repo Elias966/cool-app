@@ -364,6 +364,16 @@ export default {
       const key = keyFor(code);
       if (how === 'text') return copy(keyCardText(key), 'Key card');
       const blob = await keyCardBlob(key);
+      if (window.prism?.shareFile) {
+        // Phones: the share sheet sends it straight to a chat (or saves it to Files).
+        try {
+          await window.prism.shareFile(blob, `cipher-key-${key.code}.png`, 'Send the key card');
+          return;
+        } catch {
+          toast('Could not share the key card', { type: 'error' });
+          return;
+        }
+      }
       if (how === 'copy') {
         try {
           await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
@@ -377,6 +387,11 @@ export default {
       a.click();
       setTimeout(() => URL.revokeObjectURL(a.href), 4000);
       toast(`Key card saved as cipher-key-${key.code}.png`);
+    }
+    if (window.prism?.shareFile) {
+      // One share button on phones: the share sheet covers both sending and saving.
+      root.querySelector('[data-card="save"]')?.remove();
+      root.querySelector('[data-card="copy"]').title = 'Share the key card as an image';
     }
     root.querySelectorAll('[data-card]').forEach((b) => {
       cleanups.push(fx.ripple(b));
