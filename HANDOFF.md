@@ -7,9 +7,10 @@ user-facing description, this file is for whoever works on the code next.
 
 The user asked for an Android version ("android version" folder, UI and sound
 optimized for phones and tablets, Android 7+, released next to the AppImage),
-then asked to stop and write this handoff before it was finished. Branch:
-`claude/vigilant-cray-k2tw4d` on GitHub `Elias966/cool-app` (all pushed).
-**Version is still 1.1.0, so no Android release has been published yet.**
+then asked to stop and write this handoff before it was finished. That work
+(branch `claude/vigilant-cray-k2tw4d`) was then merged into `main` on the user's
+machine, finished, bumped to **1.2.0** and pushed to `main`, which starts the
+release workflow (see item 3 below for its outcome).
 
 Done and verified:
 - `android version/` Gradle project, `scripts/android.js`, bridge and AI worker
@@ -356,7 +357,7 @@ committed `keystore/prism-release.jks`).
   icon to `~/.local/share/icons/hicolor/512x512/apps/prism.png`. `Icon=` is an
   **absolute path** because the user's stale `icon-theme.cache` hid the icon
   (dock showed a gear).
-- Portable mode: a folder named `Prism-1.1.0-x86_64.AppImage.config` next to
+- Portable mode: a folder named `Prism-1.2.0-x86_64.AppImage.config` next to
   the AppImage makes all data (models, history) live there.
 
 ## Where data lives
