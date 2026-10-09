@@ -352,12 +352,14 @@
 .dg-chip-glyphs { font-family: var(--glyph); font-size: 15px; letter-spacing: 1px; }
 
 /* ------------------------------------------------- phones and tablets */
-/* Touch: finger-sized chips, tabs and keys; keyboard-only hints go. */
+/* Touch: finger-sized chips and tabs; the side column scrolls by finger
+   instead of squeezing the font notes. Keyboard-only hints go. */
 @media (pointer: coarse) {
   .dg-chip, .dg-mode { min-height: 38px; }
   .dg-shift { padding: 6px 12px; }
   .dg-card-actions .dg-chip { padding: 8px 13px; }
-  .dg-key { height: 40px; }
+  .dg-side { overflow-y: auto; scrollbar-width: none; }
+  .dg-info { flex: none; overflow: visible; }
 }
 .handheld .dg-hint { display: none; }
 
@@ -405,7 +407,7 @@
   /* Keys share the row width instead of a fixed size. */
   .dg { --kw: min(6vw, 40px); }
   .dg-kb { padding: 12px 10px 14px; }
-  .dg-key { flex: 0 1 44px; width: auto; min-width: 0; }
+  .dg-key { flex: 0 1 44px; width: auto; min-width: 0; height: 40px; }
   .dg-space { width: 60%; flex: none; }
 }
 /* Portrait phones: slimmer font cards (the maker is in the font notes below). */
@@ -432,7 +434,7 @@
   .dg-stream { grid-area: 2 / 2; }
   .dg-side { grid-area: 3 / 2; }
   .dg-title { font-size: 24px; }
-  .dg-deck { margin-right: -16px; padding: 8px 16px 10px 0; scroll-padding-inline: 0; }
+  .dg-deck { margin: 0 -16px 0 0; padding: 8px 16px 10px 0; scroll-padding-inline: 0; }
   .dg-font { width: 92px; padding: 6px 6px 5px; }
   .dg-font-glyphs { font-size: 16px; }
   .dg-font-maker { display: none; }

@@ -682,7 +682,7 @@ export default {
       const touch = document.body.classList.contains('handheld'); // no Enter key hint, and less room, on touch screens
       input.placeholder = mode === 'encode'
         ? (touch ? 'text to compile…' : 'type text to compile and press Enter…')
-        : touch ? 'paste a program to run…' : 'paste a Brainfuck, Ook!, Whitespace, Malbolge, Befunge or Unary program…';
+        : touch ? 'paste a program…' : 'paste a Brainfuck, Ook!, Whitespace, Malbolge, Befunge or Unary program…';
       input.setAttribute('aria-label', mode === 'encode' ? 'Text to compile' : 'Program to run');
       $('.es-send').textContent = mode === 'encode' ? 'compile & run' : 'run program';
       $('.es-verb').textContent = mode === 'encode' ? 'compile' : 'run';

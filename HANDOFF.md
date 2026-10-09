@@ -3,6 +3,60 @@
 State as of 2026-10-09. Read this before changing anything; `README.md` is the
 user-facing description, this file is for whoever works on the code next.
 
+## ▶ Where the work stopped (read first)
+
+The user asked for an Android version ("android version" folder, UI and sound
+optimized for phones and tablets, Android 7+, released next to the AppImage),
+then asked to stop and write this handoff before it was finished. Branch:
+`claude/vigilant-cray-k2tw4d` on GitHub `Elias966/cool-app` (all pushed).
+**Version is still 1.1.0, so no Android release has been published yet.**
+
+Done and verified:
+- `android version/` Gradle project, `scripts/android.js`, bridge and AI worker
+  (details in "Android app" below). `npm run android` builds a signed
+  `Prism-<version>.apk` (~30 MB, minSdk 24, targetSdk 35); checked with
+  `aapt2 dump badging` and `apksigner verify`.
+- Shell (title bar, bottom tab bar / side rail, home, safe areas, back button,
+  no auto-raised keyboard, tap sounds), phone sound chain + haptics, 3D
+  background at a lower render scale on touch devices.
+- In Chromium phone emulation with a fake bridge: back button, native clipboard,
+  key-card share, haptics, sound menu (`tests/mobile/feature-test.mjs`); the
+  phone AI end to end (download → load with 4 threads → Braille Quest story,
+  `tests/mobile/ai-int.mjs`); phone sound is ~2x more audible above 250 Hz (up
+  to 4x for deep sounds) without clipping (`tests/mobile/phone-sound.mjs`).
+- Desktop: shell/sound test still passes (sounds, mute, saved settings).
+- Module layouts reviewed on phone, landscape and tablet: **Braille**,
+  **Layered Encoding**, **Japanese Scripts**.
+- Release workflow builds the APK too and attaches it (+ .sha256) to the same
+  release; `release-notes/1.2.0.md` is written.
+
+Not finished:
+1. **Module layouts not yet reviewed**: Base64, Esoteric Languages, Dingbats,
+   Ancient Scripts, Cipher Pact. Each already has a "phones and tablets" section
+   at the end of its `style.css` (written by helpers that were stopped mid-way).
+   A last check showed all five fit a 393px phone with no sideways overflow in
+   their empty state, but they still need: small/landscape/tablet checks, real
+   use (send, mode switches, pickers, long outputs), the keyboard-open size, and
+   a desktop before/after comparison. Cipher Pact in particular (vault wheel,
+   console bar, practice mode). Use `tests/mobile/mobile-test.mjs` and the rules
+   in `tests/mobile/LAYOUT-BRIEF.md`.
+2. Re-run the desktop shell test once CPU is idle (Cipher's typing/send step
+   showed nothing in the last run, which ran under heavy load and is most likely
+   just the intro not having finished).
+3. Then: `npm run android` once more, bump `package.json` to **1.2.0**, commit,
+   push, and watch the "Release AppImage and APK" workflow until `v1.2.0` has the
+   AppImage, the APK and both .sha256 files. The APK build step is new and has
+   never run on GitHub yet (setup-java 17 + `./gradlew assembleRelease`; the
+   runner's preinstalled Android SDK is expected to have platform 35).
+4. Not possible in the container: a real device or emulator test (no KVM). Ask
+   the user to try the APK on their phone after the release.
+
+Decisions to mention to the user:
+- The signing key `android version/keystore/prism-release.jks` (password
+  `prism-android`) is committed so every build can update an installed copy;
+  anyone with repo access could sign an update. Env vars allow a private key.
+- Android uses the smaller Qwen2.5-0.5B model (~520 MB) for the AI modes.
+
 ## What it is
 
 **Prism** is a modular Electron desktop app, shipped as a Linux AppImage and
@@ -11,7 +65,7 @@ three.js 3D background plus a shell (dock, home launcher, page transitions)
 hosts **modules**: self-contained pages discovered at startup. Eight modules
 exist, each translating text both ways with heavy visual effects.
 
-- Project: `/home/theking/cool-app` (not a git repo yet)
+- Project: `/home/theking/cool-app` on the user's machine; git repo on GitHub
 - Build output: `dist/Prism-<version>-x86_64.AppImage` (~144 MB) and
   `android version/app/build/outputs/apk/release/Prism-<version>.apk` (~30 MB).
   1.1.0 = Layered Encoding, Japanese Scripts, Cipher Pact, Clear buttons and
@@ -315,7 +369,8 @@ committed `keystore/prism-release.jks`).
 
 ## How things were verified
 
-Tests so far were ad hoc scripts (not saved in the repo):
+Mobile/Android test scripts are in `tests/mobile/` (see its README). Other
+tests so far were ad hoc scripts (not saved in the repo):
 
 - **Node unit checks** of the pure files (`braille.js`, `base64.js`,
   `dingbats.js`, `scripts.js`, `esolangs.js`): round trips, edge cases, and
@@ -331,8 +386,7 @@ Tests so far were ad hoc scripts (not saved in the repo):
 
 ## Open items / ideas
 
-- Not a git repository yet. Suggest `git init` (a `.gitignore` already ignores
-  `node_modules/`, `dist/`, `.tools/`, `src/vendor/`).
+- Finish the Android version: see "Where the work stopped" at the top.
 - Electron's spellchecker downloads an English dictionary from Google once
   (`~/.config/Prism/Dictionaries`). Offered to disable it (`spellcheck: false`
   in `webPreferences`) so the app is fully offline; not done.

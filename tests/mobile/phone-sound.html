@@ -1,0 +1,12 @@
+<!doctype html><script type="module">
+import { sound } from '/src/core/sound.js';
+const out = {};
+for (const name of sound.presets) {
+  const o = name === 'whir' || name === 'wind' || name === 'rain' ? { duration: 0.8 } : {};
+  const desk = await sound.measure(name, o, 2, { chain: true, handheld: false, above: 250 });
+  const phone = await sound.measure(name, o, 2, { chain: true, handheld: true, above: 250 });
+  const phoneFull = await sound.measure(name, o, 2, { chain: true, handheld: true });
+  out[name] = { desk: desk.rms, phone: phone.rms, peak: phoneFull.peak };
+}
+window.result = out;
+</script>

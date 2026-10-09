@@ -1,0 +1,13 @@
+import http from 'node:http'; import fs from 'node:fs'; import path from 'node:path';
+import { createRequire } from 'node:module';
+const require = createRequire('/opt/node-tools/node_modules/');
+const { chromium } = require('playwright');
+const repo = decodeURIComponent(new URL('../..', import.meta.url).pathname), scratch = path.dirname(new URL(import.meta.url).pathname);
+const srv = http.createServer((q, r) => { const u = decodeURIComponent(new URL(q.url, 'http://x').pathname); const f = u === '/t.html' ? path.join(scratch, 'phone-sound.html') : path.join(repo, u); fs.readFile(f, (e, d) => { if (e) { r.writeHead(404); r.end(); return; } r.writeHead(200, { 'content-type': f.endsWith('.js') ? 'text/javascript' : 'text/html' }); r.end(d); }); }).listen(0);
+const browser = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' });
+const page = await browser.newPage(); page.on('pageerror', (e) => console.log('ERR', e.message));
+await page.goto(`http://localhost:${srv.address().port}/t.html`);
+await page.waitForFunction(() => window.result, null, { timeout: 120000 });
+const res = await page.evaluate(() => window.result);
+for (const [k, v] of Object.entries(res)) console.log(k.padEnd(13), 'audible(>250Hz) desk', v.desk.toFixed(4), 'phone', v.phone.toFixed(4), 'x' + (v.phone / v.desk).toFixed(2), 'peak', v.peak.toFixed(2), v.peak > 0.98 ? 'CLIP' : '');
+await browser.close(); srv.close();

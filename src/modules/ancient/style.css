@@ -304,11 +304,13 @@
 }
 
 /* ------------------------------------------------- phones and tablets */
-/* Touch: finger-sized chips, tabs and Rosetta rows; keyboard-only hints go. */
+/* Touch: finger-sized chips and tabs; the side column scrolls by finger
+   instead of squeezing the script notes. Keyboard-only hints go. */
 @media (pointer: coarse) {
   .an-chip, .an-mode { min-height: 38px; }
   .an-card-actions .an-chip { padding: 8px 13px; }
-  .an-row { min-height: 40px; }
+  .an-side { overflow-y: auto; scrollbar-width: none; }
+  .an-about { flex: none; overflow: visible; }
 }
 .handheld .an-hint { display: none; }
 
@@ -353,7 +355,7 @@
   .an-bar { gap: 8px; }
   .an-side { flex-direction: column; }
   .an-about { overflow: visible; }
-  .an-row { grid-template-columns: 96px minmax(0, 1fr); }
+  .an-row { grid-template-columns: 96px minmax(0, 1fr); min-height: 40px; }
 }
 /* Portrait phones: a narrower bar. The counter goes, Clear moves right and the
    Boustrophedon toggle (Greek only) takes its own row. */
@@ -377,7 +379,7 @@
   .an-tablet { grid-area: 2 / 2; }
   .an-side { grid-area: 3 / 2; }
   .an-title { font-size: 24px; }
-  .an-seals { margin-right: -16px; padding: 8px 16px 6px 0; scroll-padding-inline: 0; }
+  .an-seals { margin: 0 -16px 0 0; padding: 8px 16px 6px 0; scroll-padding-inline: 0; }
   .an-seal-coin { width: 44px; height: 44px; font-size: 20px; }
   .an-seal-coin.f-ogham { font-size: 32px; }
   .an-counter { display: none; }
