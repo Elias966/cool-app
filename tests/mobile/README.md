@@ -5,8 +5,10 @@ Playwright scripts used to build the Android version. They serve `src/` live
 `android version/app/src/main/assets/www`, so run `npm run android:web` once
 first) with a fake `window.AndroidBridge`, in Chromium with phone/tablet
 emulation. They `require('playwright')` from `/opt/node-tools/node_modules/` and
-launch `/opt/pw-browsers/chromium` (the Claude Code cloud container); change
-those two paths to run elsewhere.
+launch `/opt/pw-browsers/chromium` (the Claude Code cloud container); elsewhere
+set `PW_MODULES` (a folder whose `node_modules` has playwright, with a trailing
+slash) and `CHROMIUM` (any Chromium-based browser, e.g.
+`/opt/brave.com/brave/brave`).
 
 - `mobile-test.mjs [devices] [modules]`: screenshots into `out/` plus a report of
   elements overflowing the screen and buttons under 32px. Devices: `phone` 393x852,

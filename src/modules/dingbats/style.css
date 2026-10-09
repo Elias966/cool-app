@@ -374,7 +374,8 @@
   .dg-feed { order: 1; }
   .dg-console { order: 2; }
   .dg-stream { order: 3; }
-  .dg-side { order: 4; display: flex; flex-direction: column; min-height: auto; }
+  /* flex: none here too: .dg > * misses it (it sits inside .dg-main), and as a scroller it would shrink to 0 */
+  .dg-side { order: 4; display: flex; flex-direction: column; flex: none; min-height: auto; overflow: visible; }
   .dg:not(.dg-ready) :is(.dg-stream, .dg-feed, .dg-side) { opacity: 0; }
   .dg-ready .dg-feed { animation: dgFade 0.8s ease-out 0.2s backwards; }
   .dg-ready :is(.dg-stream, .dg-side) { animation: dgFade 0.8s ease-out 0.4s backwards; }

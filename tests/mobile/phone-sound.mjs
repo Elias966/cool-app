@@ -1,10 +1,10 @@
 import http from 'node:http'; import fs from 'node:fs'; import path from 'node:path';
 import { createRequire } from 'node:module';
-const require = createRequire('/opt/node-tools/node_modules/');
+const require = createRequire(process.env.PW_MODULES || '/opt/node-tools/node_modules/');
 const { chromium } = require('playwright');
 const repo = decodeURIComponent(new URL('../..', import.meta.url).pathname), scratch = path.dirname(new URL(import.meta.url).pathname);
 const srv = http.createServer((q, r) => { const u = decodeURIComponent(new URL(q.url, 'http://x').pathname); const f = u === '/t.html' ? path.join(scratch, 'phone-sound.html') : path.join(repo, u); fs.readFile(f, (e, d) => { if (e) { r.writeHead(404); r.end(); return; } r.writeHead(200, { 'content-type': f.endsWith('.js') ? 'text/javascript' : 'text/html' }); r.end(d); }); }).listen(0);
-const browser = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' });
+const browser = await chromium.launch({ executablePath: process.env.CHROMIUM || '/opt/pw-browsers/chromium' });
 const page = await browser.newPage(); page.on('pageerror', (e) => console.log('ERR', e.message));
 await page.goto(`http://localhost:${srv.address().port}/t.html`);
 await page.waitForFunction(() => window.result, null, { timeout: 120000 });

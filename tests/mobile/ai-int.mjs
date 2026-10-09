@@ -1,12 +1,12 @@
 // Integrated AI test of the Android build: braille "Braille Quest" on an emulated phone.
 import http from 'node:http'; import fs from 'node:fs'; import path from 'node:path';
 import { createRequire } from 'node:module';
-const require = createRequire('/opt/node-tools/node_modules/');
+const require = createRequire(process.env.PW_MODULES || '/opt/node-tools/node_modules/');
 const { chromium } = require('playwright');
 const WWW = decodeURIComponent(new URL('../../android version/app/src/main/assets/www', import.meta.url).pathname);
 const types = { '.js': 'text/javascript', '.mjs': 'text/javascript', '.html': 'text/html', '.css': 'text/css', '.json': 'application/json', '.svg': 'image/svg+xml', '.wasm': 'application/wasm', '.woff2': 'font/woff2' };
 const srv = http.createServer((q, r) => { let u = decodeURIComponent(new URL(q.url, 'http://x').pathname); fs.readFile(path.join(WWW, u), (e, d) => { if (e) { r.writeHead(404); r.end(); return; } r.writeHead(200, { 'content-type': types[path.extname(u)] || 'application/octet-stream', 'Cross-Origin-Opener-Policy': 'same-origin', 'Cross-Origin-Embedder-Policy': 'require-corp', 'Cross-Origin-Resource-Policy': 'same-origin' }); r.end(d); }); }).listen(0);
-const ctx = await chromium.launchPersistentContext(decodeURIComponent(new URL('./ai-profile', import.meta.url).pathname), { executablePath: '/opt/pw-browsers/chromium', viewport: { width: 393, height: 852 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2, args: ['--disable-gpu'] });
+const ctx = await chromium.launchPersistentContext(decodeURIComponent(new URL('./ai-profile', import.meta.url).pathname), { executablePath: process.env.CHROMIUM || '/opt/pw-browsers/chromium', viewport: { width: 393, height: 852 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2, args: ['--disable-gpu'] });
 await ctx.addInitScript(() => { window.AndroidBridge = { insets: () => '{"top":24,"right":0,"bottom":20,"left":0}', copyText: () => true, shareFile: () => true, haptic: () => {}, openUrl: () => {}, appVersion: () => 't' }; });
 const page = ctx.pages()[0] || await ctx.newPage();
 page.on('pageerror', (e) => console.log('PAGEERR', e.message));

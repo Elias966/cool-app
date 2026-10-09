@@ -506,7 +506,7 @@
 /* Stacked: head, feed (or practice), console, then the vault. The root scrolls;
    the feed fills the first screen (100cqh minus the head and the console). */
 @media (max-width: 1000px) and (hover: none), (max-width: 760px), (max-height: 520px) and (min-width: 600px) {
-  .cp { --cp-rest: 300px; overflow: hidden auto; container-type: size; padding: 16px 22px 22px; }
+  .cp { --cp-rest: 350px; overflow: hidden auto; container-type: size; padding: 16px 22px 22px; }
   .cp > * { flex: none; }
   .cp-head { flex-wrap: wrap; gap: 10px 16px; }
   .cp-head-main { flex: 1 1 320px; min-width: 0; }
@@ -576,6 +576,7 @@
   .cp-live { font-size: 16px; }
   .cp-inputrow { gap: 10px; }
   .cp-input { min-height: 44px; max-height: 110px; padding: 10px 2px; }
+  .cp-input::placeholder { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .cp-send { width: 52px; height: 48px; padding: 0; justify-content: center; }
   .cp-send span { display: none; } /* icon only: ✦ forge, 🔒 seal, 🔓 decrypt, ↻ skip */
   .cp-send b { font-size: 19px; }
@@ -601,16 +602,16 @@
 }
 /* Landscape phones: short screens, so the head shrinks to one line. */
 @media (max-height: 520px) and (min-width: 600px) {
-  .cp { --cp-rest: 196px; gap: 8px; padding: 10px 18px 14px; }
+  .cp { --cp-rest: 196px; --cp-min: 130px; gap: 8px; padding: 10px 18px 14px; } /* console on the first screen */
   .cp-head { flex-wrap: nowrap; align-items: center; }
   .cp-head-main { flex: 1 1 auto; }
   .cp-badge, .cp-sub { display: none; }
   .cp-title { margin: 0; font-size: 24px; }
   .cp-ai { flex: 0 1 320px; padding: 5px 12px; }
   .cp-wheel { scale: 0.8; margin: -30px; }
-  .cp-practice { grid-template-columns: 130px minmax(0, 1fr); gap: 10px 16px; padding: 4px 0 0; }
-  .cp-flip { width: 124px; height: 160px; }
-  .cp-face b { font-size: 64px; }
+  .cp-practice { grid-template-columns: 100px minmax(0, 1fr); gap: 10px 16px; padding: 4px 0 0; }
+  .cp-flip { width: 98px; height: 124px; } /* fits the 130px practice row */
+  .cp-face b { font-size: 50px; }
   .cp-face small { font-size: 9px; letter-spacing: 0.12em; }
   .cp-pstats div { padding: 6px 12px; flex-direction: row; align-items: baseline; gap: 8px; }
   .cp-pstats b { font-size: 22px; }
@@ -618,7 +619,8 @@
   .cp-m b { font-size: 16px; }
   .cp-console { padding: 6px 14px 8px 18px; }
   .cp-live { height: 22px; font-size: 16px; }
-  .cp-live.idle, .cp-live.err { line-height: 22px; }
+  .cp-live.err { line-height: 22px; }
+  .cp-live.idle { display: none; }
   .cp-input { min-height: 40px; max-height: 80px; padding: 8px 2px; }
   .cp-send { height: 42px; }
   .cp-bar { gap: 8px; margin-top: 4px; }

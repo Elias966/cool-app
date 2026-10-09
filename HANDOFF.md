@@ -30,20 +30,34 @@ Done and verified:
 - Release workflow builds the APK too and attaches it (+ .sha256) to the same
   release; `release-notes/1.2.0.md` is written.
 
+Done in the next session (on the user's machine, 2026-10-09):
+1. **Remaining module layouts reviewed**: Base64, Esoteric Languages, Dingbats,
+   Ancient Scripts, Cipher Pact, on phone/small/landscape/tablet/tablet-landscape,
+   with real use (encode, long text, decode, Cipher make/read/practice) and the
+   keyboard-open size; no sideways overflow anywhere. Fixed:
+   - Dingbats and Ancient: the side column (symbol keyboard, Rosetta stone, notes)
+     had collapsed to 0px on phones (and mostly on tablets), so it was unreachable.
+     `.X > * { flex: none }` misses it (it sits inside the `display: contents`
+     main), and as a touch scroller it shrank. Now `flex: none; overflow: visible`.
+   - Ancient, keyboard open: the empty live tablet shrank to its padding and the
+     hint overlapped the label (min-height 64px now).
+   - Base64: the history now sits between pipeline and console (it was below the
+     console, so on small phones new cards landed off screen); on short phones
+     (≤720px tall) the pipeline moves below the console.
+   - Cipher Pact: the tablet-portrait console was cut off (`--cp-rest` 350px);
+     on landscape phones the console now fits on the first screen (`--cp-min`
+     130px, smaller flip card, idle hint line hidden); the placeholder no
+     longer gets clipped on small phones.
+   Desktop computed styles compared before/after at 1320x840 and 1000x700: same.
+   Left as is: Dingbats symbol-keyboard keys are ~22px wide on phones (a full
+   13-key row); "Hover a tile/glyph" hint texts say hover on touch devices.
+2. Desktop smoke test re-run in Electron (hidden window, temp user data, AI
+   stubbed): all 8 modules boot with intro sounds, Cipher forge → type → seal
+   works, mute is saved, no errors. The earlier empty result was just load.
+
 Not finished:
-1. **Module layouts not yet reviewed**: Base64, Esoteric Languages, Dingbats,
-   Ancient Scripts, Cipher Pact. Each already has a "phones and tablets" section
-   at the end of its `style.css` (written by helpers that were stopped mid-way).
-   A last check showed all five fit a 393px phone with no sideways overflow in
-   their empty state, but they still need: small/landscape/tablet checks, real
-   use (send, mode switches, pickers, long outputs), the keyboard-open size, and
-   a desktop before/after comparison. Cipher Pact in particular (vault wheel,
-   console bar, practice mode). Use `tests/mobile/mobile-test.mjs` and the rules
-   in `tests/mobile/LAYOUT-BRIEF.md`.
-2. Re-run the desktop shell test once CPU is idle (Cipher's typing/send step
-   showed nothing in the last run, which ran under heavy load and is most likely
-   just the intro not having finished).
-3. Then: `npm run android` once more, bump `package.json` to **1.2.0**, commit,
+3. `npm run android` could not be run locally (no JDK/Android SDK on the user's
+   machine); the release workflow builds the APK. Bump `package.json` to **1.2.0**, commit,
    push, and watch the "Release AppImage and APK" workflow until `v1.2.0` has the
    AppImage, the APK and both .sha256 files. The APK build step is new and has
    never run on GitHub yet (setup-java 17 + `./gradlew assembleRelease`; the
@@ -96,6 +110,9 @@ npm run dist     # build the AppImage (also runs scripts/vendor.js first)
 - If `npm ci` fails in `onnxruntime-node`'s postinstall (it downloads optional
   CUDA libraries, which the build excludes anyway), install with
   `ONNXRUNTIME_NODE_INSTALL=skip npm ci`; the CPU runtime is in the package.
+- The project-local npm doesn't run install scripts it hasn't been told to
+  allow, so after `npm ci` Electron has no binary: run
+  `node node_modules/electron/install.js` (and `node node_modules/esbuild/install.js`).
 
 ## Architecture
 
@@ -369,7 +386,9 @@ committed `keystore/prism-release.jks`).
 
 ## How things were verified
 
-Mobile/Android test scripts are in `tests/mobile/` (see its README). Other
+Mobile/Android test scripts are in `tests/mobile/` (see its README; on the
+user's machine: playwright installed in any scratch folder via `PW_MODULES`, and
+`CHROMIUM=/opt/brave.com/brave/brave`). Other
 tests so far were ad hoc scripts (not saved in the repo):
 
 - **Node unit checks** of the pure files (`braille.js`, `base64.js`,

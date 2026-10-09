@@ -1,7 +1,7 @@
 // Serves the Android web build like MainActivity does and screenshots it on phone/tablet sizes.
 import http from 'node:http'; import fs from 'node:fs'; import path from 'node:path';
 import { createRequire } from 'node:module';
-const require = createRequire('/opt/node-tools/node_modules/');
+const require = createRequire(process.env.PW_MODULES || '/opt/node-tools/node_modules/');
 const { chromium } = require('playwright');
 // Serves src/ live (so CSS edits need no rebuild); index.html, modules.json and
 // android/* come from the last `node scripts/android.js` build.
@@ -29,7 +29,7 @@ const devices = {
 };
 const which = (process.argv[2] || 'phone').split(',');
 const mods = (process.argv[3] || 'home,braille,base64,dingbats,ancient,esolang,layers,japanese,cipher').split(',');
-const browser = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium', args: ['--enable-unsafe-swiftshader', '--use-angle=swiftshader'] });
+const browser = await chromium.launch({ executablePath: process.env.CHROMIUM || '/opt/pw-browsers/chromium', args: ['--enable-unsafe-swiftshader', '--use-angle=swiftshader'] });
 const errors = [];
 for (const d of which) {
   const ctx = await browser.newContext({ ...devices[d], userAgent: 'Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0 Mobile Safari/537.36 Prism/test' });
@@ -69,7 +69,7 @@ for (const d of which) {
       return { bad: bad.slice(0, 12), nBad: bad.length, docW: document.documentElement.scrollWidth, scrollH: v?.scrollHeight, small: [...new Set(small)].slice(0, 15) };
     });
     console.log(`[${d}/${m}] overflow:${over.nBad} docW:${over.docW} viewScrollH:${over.scrollH}`, over.bad.join(' | '), over.small.length ? `\n   small targets: ${over.small.join(' ')}` : '');
-    await page.screenshot({ path: `${OUT}${d}-${m}.png` });
+    await page.screenshot({ path: `${OUT}${d}-${m}.png`, scale: process.env.SHOT_SCALE || 'device' });
   }
   await ctx.close();
 }

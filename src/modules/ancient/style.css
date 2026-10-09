@@ -325,7 +325,8 @@
   .an-tablet { order: 1; }
   .an-feed { order: 2; }
   .an-console { order: 3; }
-  .an-side { order: 4; display: flex; min-height: auto; }
+  /* flex: none here too: .an > * misses it (it sits inside .an-main), and as a scroller it would shrink to 0 */
+  .an-side { order: 4; display: flex; flex: none; min-height: auto; overflow: visible; }
   .an:not(.an-ready) :is(.an-tablet, .an-feed, .an-side) { opacity: 0; }
   .an-head { flex-direction: column; align-items: stretch; gap: 0; }
   .an-badge, .an-sub { display: none; } /* the title bar already says where you are */
@@ -391,6 +392,6 @@
 @media (max-width: 760px) and (orientation: portrait) and (max-height: 560px) {
   .an { overflow: clip; padding-top: 10px; gap: 10px; }
   .an-head, .an-side, .an-bar { display: none; }
-  .an-tablet { min-height: 0; max-height: 34%; padding-top: 24px; }
+  .an-tablet { min-height: 64px; max-height: 34%; padding-top: 24px; } /* room for the label above the centred hint */
   .an-feed { flex: 1 1 0; height: auto; min-height: 0; }
 }

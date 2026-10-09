@@ -363,11 +363,11 @@
   .b64-bar:has(.b64-toggles:not([hidden])) .b64-counter { display: none; } /* no room next to the toggles */
   .b64-clear { margin-left: auto; }
 }
-/* Portrait phones: the console sits right under the pipeline so both show without scrolling;
-   the history follows and fills what is left. */
-@media (max-width: 599px), (max-width: 760px) and (orientation: portrait) {
-  .b64-console { order: 1; }
-  .b64-feed { order: 2; }
+/* Short portrait phones: head, pipeline and console alone are taller than the screen, so the
+   pipeline moves below the console (it hides while typing anyway) and new cards stay in view. */
+@media (max-width: 760px) and (orientation: portrait) and (max-height: 720px) {
+  .b64-sub { display: none; }
+  .b64-pipe { order: 1; }
 }
 /* Landscape phones: pipeline on the left, feed and console on the right. */
 @media (max-height: 520px) and (min-width: 600px) {
