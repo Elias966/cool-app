@@ -8,6 +8,16 @@ tied to one feature.
 It ships with eight modules: **Text to Braille**, **Text to Base64**, **Text to Dingbats**, **Ancient Scripts**,
 **Esoteric Languages**, **Layered Encoding**, **Japanese Scripts** and **Cipher Pact**.
 
+## Universal translator
+
+The bar on Home reads anything a module made, without opening the module or
+knowing which one it was: paste braille, Base64, dingbats, runes, a Brainfuck
+program, a layered string, katakana or a Cipher Pact message, press Enter, and
+it names the module and style, shows how sure it is, and gives the text back
+(exactly, when the text carries Prism's invisible copy of the original). Other
+possible readings are listed below it, and *Open* jumps to that module.
+Sealed Cipher Pact messages are read with the keys in your key ring.
+
 ## Download
 
 The latest version is on the repository's **Releases** page:
@@ -64,6 +74,9 @@ src/core/fx.js          reusable effects: tilt, magnetic, ripple, scramble, burs
 src/core/home.js        launcher page
 src/core/ai.js          ctx.ai: local text generation for modules
 src/core/sound.js       ctx.sound: synthesized sound effects (Web Audio, no files)
+src/core/translate.js   the universal translator on Home (runs every module's reader.js)
+src/core/hidden.js      the invisible copy that makes lossy results decode exactly
+src/core/english.js     English word list (SCOWL) the decoders use to pick real words
 electron/ai-host.mjs    background process that downloads and runs AI models
 src/modules/<id>/       built-in modules
 build/                  icon + AppImage launcher hook
@@ -102,6 +115,12 @@ Modules are loaded from two places:
 
 `icon` can be an image file in the folder or a short text/emoji. `style` can be
 one file or a list, and is removed again when the user leaves the module.
+
+To take part in the universal translator on Home, add `"reader": "reader.js"`:
+its default export is `read(text, { storage }) → null | { text, style, confidence }`,
+where `confidence` (0–1) says how sure it is that the text is its kind and
+`storage` is the module's own `ctx.storage`. The translator ranks every
+module's reading by confidence and by how readable the result is.
 
 **`index.js`**
 

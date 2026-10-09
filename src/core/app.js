@@ -226,7 +226,7 @@ async function navigate(id, { force = false } = {}) {
     crumb.textContent = '';
     setAccent(DEFAULT_ACCENT);
     scene.setFocus('home');
-    current.cleanup = renderHome(view, { modules, fx, navigate, openModulesFolder: CAN_ADD_MODULES ? openModulesFolder : null, iconMarkup });
+    current.cleanup = renderHome(view, { modules, fx, navigate, openModulesFolder: CAN_ADD_MODULES ? openModulesFolder : null, iconMarkup, storageFor, toast });
     return;
   }
 

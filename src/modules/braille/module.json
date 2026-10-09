@@ -5,6 +5,7 @@
   "icon": "icon.svg",
   "accent": "#7c5cff",
   "entry": "index.js",
+  "reader": "reader.js",
   "style": "style.css",
   "order": 10
 }

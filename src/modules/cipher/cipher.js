@@ -438,7 +438,8 @@ export function parseInline(text) {
   const loose = (x) => x.replace(/[^\p{L}\p{N}]/gu, '').toLowerCase(); // letters and digits only
   if (res && original !== null && loose(original) === loose(res.secret)) res.secret = original;
   // Nothing in it had a code (only emoji, say): the invisible copy is all there is.
-  if (!res && original !== null) return { style: 'letters', secret: original, legend: [] };
+  // Only for text that is one of these messages, not anything else carrying a copy.
+  if (!res && original !== null && /\b(code|mapping|secret language|cipher|now)\s*:|\bWhen I say\b/i.test(visible)) return { style: 'letters', secret: original, legend: [] };
   return res;
 }
 

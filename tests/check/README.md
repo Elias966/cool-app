@@ -1,7 +1,7 @@
 # Module checker
 
 ```bash
-npm run check -- <module id | all> [--devices desktop,phone,small,landscape,tablet,tabletLand]
+npm run check -- <module id | home | all> [--devices desktop,phone,small,landscape,tablet,tabletLand | none]
                                   [--fuzz 300] [--ai] [--out <dir>] [--verbose]
 ```
 
@@ -45,3 +45,7 @@ export default {
   },
 };
 ```
+
+`home` checks the launcher and its universal translator the same way
+(`specs/home.mjs`: every module's output must come back exactly, named after
+the right module). `all` includes it.

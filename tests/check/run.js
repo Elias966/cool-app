@@ -262,7 +262,9 @@ async function liveChecks(mod, device, wc, out) {
   try {
     step(`${device}: instrument`);
     await js(INSTRUMENT);
-    await js(`location.hash = '#/home'`);
+    // Leaving means going Home; for Home itself, to the first module.
+    const away = mod.home ? listModules().sort((a, b) => (a.manifest.order ?? 100) - (b.manifest.order ?? 100))[0].manifest.id : 'home';
+    await js(`location.hash = '#/${away}'`);
     await wait(1500);
     const baseFrames = await js(`(async () => { const a = __check.frames; await new Promise((r) => setTimeout(r, 1000)); return __check.frames - a; })()`);
     await js(`__check.tracking = true; location.hash = '#/${mod.manifest.id}'`);
@@ -270,8 +272,8 @@ async function liveChecks(mod, device, wc, out) {
     const t0 = Date.now();
     let ready = false;
     while (Date.now() - t0 < 9000) {
-      ready = await js(`(() => { const v = document.querySelector('.view[data-module="${mod.manifest.id}"]'); return v ? (/\\b[a-z0-9]+-ready\\b/.test(v.className) ? 'ready' : 'open') : false; })()`);
-      if (ready === 'ready') break;
+      ready = await js(`(() => { const v = document.querySelector('.view[data-view="${mod.manifest.id}"]'); return v ? (/\\b[a-z0-9]+-ready\\b/.test(v.className) ? 'ready' : 'open') : false; })()`);
+      if (ready === 'ready' || (mod.home && ready === 'open')) break; // Home has no intro
       await wait(200);
     }
     if (!ready) fail(`${tag} open`, 'the module never appeared');
@@ -316,12 +318,12 @@ async function liveChecks(mod, device, wc, out) {
 
     // Leave and come back twice; then leave and look for leftovers.
     for (let k = 0; k < 2; k++) {
-      await js(`location.hash = '#/home'`);
+      await js(`location.hash = '#/${away}'`);
       await wait(1200);
       await js(`location.hash = '#/${mod.manifest.id}'`);
       await wait(3000);
     }
-    await js(`location.hash = '#/home'`);
+    await js(`location.hash = '#/${away}'`);
     await wait(2000);
     const left = await js(`(async () => {
       __check.tracking = false;
@@ -332,7 +334,7 @@ async function liveChecks(mod, device, wc, out) {
     if (left.timers.length) fail(`${tag} cleanup`, `${left.timers.length} setInterval still running after leaving: ${left.timers.slice(0, 2).join(' | ')}`);
     else pass(`${tag} cleanup`, 'no intervals left running');
     // Only the module's own listeners count (the shell keeps some on purpose, and home adds its own).
-    const own = left.listeners.filter((l) => l.includes(`/modules/${mod.dir}/`));
+    const own = left.listeners.filter((l) => l.includes(mod.home ? '/core/home.js' : `/modules/${mod.dir}/`) || (mod.home && l.includes('/core/translate.js')));
     if (own.length) warn(`${tag} listeners`, `${own.length} window/document listeners left behind: ${[...new Set(own)].slice(0, 6).join(' ')}`);
     else pass(`${tag} listeners`, 'no window/document listeners left behind');
     if (left.frames > baseFrames + 40) warn(`${tag} animation`, `${left.frames - baseFrames} more animation frames per second after leaving (a loop still running?)`);
@@ -416,7 +418,9 @@ app.whenReady().then(async () => {
   session.defaultSession.on('will-download', (_e, item) => item.setSavePath(path.join(OUT_ROOT, 'downloads', item.getFilename())));
   await wait(3500);
   const desktop = BrowserWindow.getAllWindows()[0];
-  const mods = listModules().filter((m) => target === 'all' || m.dir === target || m.manifest.id === target);
+  // "home" is the launcher with the universal translator; "all" includes it.
+  const HOME = { dir: 'home', home: true, path: path.join(SRC, 'core'), manifest: { id: 'home', name: 'Home (universal translator)' } };
+  const mods = [...listModules(), HOME].filter((m) => target === 'all' || m.dir === target || m.manifest.id === target);
   if (!mods.length) {
     console.error(`No module "${target}". Modules: ${listModules().map((m) => m.dir).join(', ')}`);
     app.exit(2);
@@ -429,7 +433,7 @@ app.whenReady().then(async () => {
     const out = path.join(OUT_ROOT, mod.dir);
     fs.mkdirSync(out, { recursive: true });
     console.log(`\n■ ${mod.manifest.name} (${mod.dir}) …`);
-    staticChecks(mod);
+    if (!mod.home) staticChecks(mod);
     step('static checks done');
     await roundTrips(mod);
     step('round trips done');
