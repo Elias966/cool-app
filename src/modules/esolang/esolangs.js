@@ -2,6 +2,8 @@
 // interpreters for each language. The interpreters drive the on-screen machine
 // and also check every generated program: it runs, and must print the input.
 
+import { withHidden, reveal, stripHidden } from '../../core/hidden.js';
+
 const utf8 = (text) => Array.from(new TextEncoder().encode(String(text)));
 
 // ================================================================ Brainfuck
@@ -517,9 +519,12 @@ export function compile(text, lang) {
   if (lang === 'malbolge') {
     const safe = asciiOnly(text);
     const note = safe.replaced.length
-      ? `Malbolge here can only print plain ASCII, so ${safe.replaced.join(' ')} became “?” (accents are simply dropped).`
+      ? `Malbolge here can only print plain ASCII, so ${safe.replaced.join(' ')} became “?” when it runs (accents are dropped). The copied program carries your exact text invisibly, so Program → text gives it back.`
       : '';
-    return { code: toMalbolge(safe.text), prints: safe.text, note };
+    const code = toMalbolge(safe.text);
+    // `copy` is what Copy program puts on the clipboard: the program plus an
+    // invisible copy of the original text when Malbolge can't print all of it.
+    return { code, prints: safe.text, note, copy: safe.text !== text ? withHidden(code, text) : code };
   }
   if (lang === 'unary') {
     const u = toUnary(text);
@@ -555,7 +560,7 @@ export function unaryToBrainfuck(code) {
 
 /** Guess which language a pasted program is written in (or null). */
 export function detectLanguage(code) {
-  const t = String(code);
+  const t = stripHidden(String(code));
   if (!t.trim()) return /[ \t]/.test(t) && t.includes('\n') ? 'whitespace' : null;
   if (/[·→↵]/.test(t) && !t.replace(/[·→↵\s]/g, '')) return 'whitespace';
   if (/\bOok[.!?]/.test(t)) return 'ook';
@@ -575,7 +580,8 @@ export function detectLanguage(code) {
 }
 
 /** Turn pasted code into the object the machines and code view use. */
-export function loadProgram(code, lang) {
+export function loadProgram(raw, lang) {
+  const code = stripHidden(String(raw));
   if (lang === 'unary') {
     const t = String(code).trim();
     const bf = unaryToBrainfuck(t);
@@ -593,6 +599,17 @@ export function loadProgram(code, lang) {
 }
 
 /** Run to the end (with a step limit) and return the printed text. */
+/**
+ * The exact text a pasted program was made from, when it carries an invisible
+ * copy (Malbolge programs for non-ASCII text) and compiling that copy gives
+ * this very program; otherwise null.
+ */
+export function hiddenText(raw, lang) {
+  const { visible, original } = reveal(String(raw));
+  if (original === null || lang !== 'malbolge') return null;
+  return compile(original, 'malbolge').code === visible.trim() ? original : null;
+}
+
 export function runToEnd(lang, compiled, limit = 20_000_000) {
   const m = machineFor(lang, compiled);
   while (m.step()) if (m.state.steps > limit) throw new Error('Step limit reached');

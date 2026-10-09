@@ -10,6 +10,9 @@
 // Decoding kana that isn't one of the ciphers is romaji transliteration
 // (Hepburn), so any kana text can be read back.
 
+import { englishWords, isCommon, capitalsAt } from '../../core/english.js';
+import { withHidden, reveal, stripHidden } from '../../core/hidden.js';
+
 // ------------------------------------------------------------- kana tables
 const ROMAJI = {
   a: 'あ', i: 'い', u: 'う', e: 'え', o: 'お',
@@ -270,7 +273,7 @@ const hankakuCipher = cipher({
   ...HANKAKU_PUNCT,
 });
 // Kanji-look has one glyph per letter, so case can't survive: both cases map
-// to the same glyph and decode to lowercase.
+// to the same glyph and decode in sentence case.
 const kanjiLookCipher = (() => {
   const lower = Object.fromEntries(Array.from(ABC, (l, i) => [l, KANJI_LOOK[i]]));
   const c = cipher(lower);
@@ -330,6 +333,9 @@ for (const [en, kana] of Object.entries(WORDS)) if (!REVERSE.has(kana)) REVERSE.
 // Extra syllables the spelling rules produce (si → シ, ti → ティ …).
 const PHONETIC = { ...ROMAJI, si: 'し', zi: 'じ', hu: 'ふ', yi: 'い', wu: 'う', wo: 'うぉ' };
 const PHONETIC_KEYS = Object.keys(PHONETIC).sort((a, b) => b.length - a.length);
+// The same keys grouped by first letter (longest first), so a lookup only scans a few.
+const PHONETIC_BY_FIRST = new Map();
+for (const k of PHONETIC_KEYS) (PHONETIC_BY_FIRST.get(k[0]) ?? PHONETIC_BY_FIRST.set(k[0], []).get(k[0])).push(k);
 
 /** English spelling → a rough romaji-like pronunciation. */
 function englishToPseudo(word) {
@@ -388,7 +394,7 @@ function pseudoToKana(p) {
       i++;
       continue;
     }
-    const key = PHONETIC_KEYS.find((k) => p.startsWith(k, i));
+    const key = PHONETIC_BY_FIRST.get(c)?.find((k) => p.startsWith(k, i));
     if (key) {
       out += PHONETIC[key];
       i += key.length;
@@ -415,9 +421,9 @@ function pseudoToKana(p) {
 
 function englishToKana(word) {
   const w = word.toLowerCase();
-  if (WORDS[w]) return WORDS[w];
+  if (Object.hasOwn(WORDS, w)) return WORDS[w];
   // Plurals of known words: cats → キャッツ, dogs → ドッグズ.
-  if (/s$/.test(w) && WORDS[w.slice(0, -1)]) {
+  if (/s$/.test(w) && Object.hasOwn(WORDS, w.slice(0, -1))) {
     const base = WORDS[w.slice(0, -1)];
     return base.endsWith('ト') ? `${base.slice(0, -1)}ツ` : /[クプフ]$/.test(base) ? `${base}ス` : `${base}ズ`;
   }
@@ -441,16 +447,81 @@ function encodeKatakana(text) {
   return finish(tokens);
 }
 
+// Katakana → the English words the spelling rules write that way, so words that
+// aren't in WORDS read back too (フロム → from). Building it runs every English
+// word through the rules (about half a second on a PC), so warmUp() does it a
+// slice at a time while the page is idle; a decode before then finishes it.
+const SPELLED = new Map();
+let spellQueue = null;
+let spelledReady = false;
+let quickDecode = false; // set by decode({ quick }): don't wait for the index
+let spelledMissed = false;
+function buildSpelled(budgetMs = Infinity) {
+  spellQueue ??= [...englishWords()];
+  const end = performance.now() + budgetMs;
+  while (spellQueue.length) {
+    for (let n = 0; n < 250 && spellQueue.length; n++) {
+      const w = spellQueue.pop();
+      const kana = englishToKana(w);
+      (SPELLED.get(kana) ?? SPELLED.set(kana, []).get(kana)).push(w);
+    }
+    if (performance.now() > end) return false;
+  }
+  return true;
+}
+/** Builds the katakana index in the background (the page calls this on open); resolves when ready. */
+let warming = null;
+export function warmUp() {
+  warming ??= new Promise((resolve) => {
+    const step = () => {
+      if (!spelledReady) spelledReady = buildSpelled(8);
+      if (spelledReady) resolve();
+      else setTimeout(step, 16);
+    };
+    setTimeout(step, 300);
+  });
+  return warming;
+}
+/**
+ * The likeliest English word written as `kana`: common words first, then the one
+ * sharing the most letters with the romaji reading (ブラウン buraun: brown, not
+ * blown), then the shortest.
+ */
+function spelledAs(kana, romaji = '') {
+  if (!spelledReady && quickDecode) {
+    spelledMissed = true;
+    return null;
+  }
+  if (!spelledReady) spelledReady = buildSpelled();
+  const words = SPELLED.get(kana);
+  if (!words) return null;
+  const shared = (w) => Array.from(w).filter((c) => romaji.includes(c)).length;
+  return [...words].sort((a, b) => isCommon(b) - isCommon(a) || shared(b) - shared(a) || a.length - b.length || a.localeCompare(b))[0];
+}
+
+/** Decoded English reads as sentences: a capital at the start and after . ! ?, and I on its own. */
+function sentenceCase(res) {
+  const caps = capitalsAt(res.tokens.map((t) => t.out).join(''));
+  let at = 0;
+  for (const t of res.tokens) {
+    const n = t.out.length;
+    if (n && [...caps].some((c) => c >= at && c < at + n)) t.out = Array.from(t.out, (ch, k) => (caps.has(at + k) ? ch.toUpperCase() : ch)).join('');
+    at += n;
+  }
+  return finish(res.tokens);
+}
+
 function decodeKatakana(text) {
-  // Known loanwords turn back into English; anything else is read as romaji.
+  // Loanwords from WORDS turn back into English, then any word the spelling
+  // rules make; anything else is read as romaji.
   const res = kanaToRomaji(text);
   for (const t of res.tokens) {
     if (!t.jp) continue;
     const plural = /[ツスズ]$/.test(t.src) && (REVERSE.get(t.src.slice(0, -1)) ?? REVERSE.get(`${t.src.slice(0, -1)}ト`));
-    const en = REVERSE.get(t.src) ?? (plural ? `${plural}s` : null);
+    const en = REVERSE.get(t.src) ?? (plural ? `${plural}s` : null) ?? spelledAs(t.src, t.out.toLowerCase());
     if (en) t.out = en;
   }
-  return finish(res.tokens);
+  return sentenceCase(res);
 }
 
 // --------------------------------------------------------------- styles
@@ -478,7 +549,7 @@ export const STYLES = [
   {
     id: 'kanjilook', name: 'Kanji-look', jp: '漢字風',
     blurb: 'Latin letters drawn with look-alike kanji',
-    encode: kanjiLookCipher.encode, decode: kanjiLookCipher.decode, exact: false,
+    encode: kanjiLookCipher.encode, decode: (t) => sentenceCase(kanjiLookCipher.decode(t)), exact: false,
   },
 ];
 export const styleById = (id) => STYLES.find((s) => s.id === id) || STYLES[0];
@@ -539,17 +610,47 @@ export function hasJapanese(text) {
 export function encode(text, styleId) {
   const style = styleById(styleId);
   const res = style.encode(text);
-  const back = style.decode(res.text).text;
-  return { ...res, style, exact: back === text, back };
+  // The read-back only decides whether the hidden copy is needed, so it never
+  // waits for the katakana index.
+  const back = withQuick(true, () => style.decode(res.text)).res.text;
+  const exact = back === text && detectStyle(res.text) === style.id;
+  // Results that lose something on screen (sound-alikes, case), or that would be
+  // read as another style, carry an invisible copy of the original, so decoding
+  // gives back exactly what was typed.
+  return { ...res, text: exact ? res.text : withHidden(res.text, text), style, exact, hidden: !exact, back };
 }
 
-export function decode(text, styleId = 'auto') {
-  const id = styleId === 'auto' ? detectStyle(text) : styleId;
-  const style = styleById(id);
-  const res = style.decode(text);
+/**
+ * @param {{ quick?: boolean }} options quick: don't build the katakana index now if it
+ *   isn't ready; the result then has `pending: true` (decode again after warmUp()).
+ */
+export function decode(input, styleId = 'auto', { quick = false } = {}) {
+  const { visible: text, original } = reveal(input);
   const kanji = (text.match(/[一-鿿]/g) || []).filter((c) => !kanjiLookCipher.glyphs.has(c)).length;
-  return { ...res, style, auto: styleId === 'auto', kanji };
+  const auto = styleId === 'auto';
+  // The invisible copy wins when encoding it again gives exactly the visible text.
+  if (original !== null) {
+    for (const style of auto ? [styleById(detectStyle(text)), ...STYLES] : [styleById(styleId)]) {
+      const again = style.encode(original);
+      if (again.text !== text) continue;
+      const tokens = again.tokens.map((t) => ({ ...t, src: t.out, out: t.src }));
+      return { text: original, tokens, style, auto, kanji, pending: false, exact: true };
+    }
+  }
+  const style = styleById(auto ? detectStyle(text) : styleId);
+  const { res, missed } = withQuick(quick, () => style.decode(text));
+  return { ...res, style, auto, kanji, pending: missed, exact: style.exact };
+}
+
+function withQuick(quick, fn) {
+  quickDecode = quick;
+  spelledMissed = false;
+  try {
+    return { res: fn(), missed: spelledMissed };
+  } finally {
+    quickDecode = false;
+  }
 }
 
 /** Romaji reading of any Japanese text (for "Copy romaji"). */
-export const romajiOf = (text) => kanaToRomaji(text, { capitalize: false }).text;
+export const romajiOf = (text) => kanaToRomaji(stripHidden(text), { capitalize: false }).text;

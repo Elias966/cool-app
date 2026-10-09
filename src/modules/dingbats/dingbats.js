@@ -4,6 +4,7 @@
 // The result is ordinary text that looks the same anywhere and can be pasted.
 
 import { MAPS } from './maps.js';
+import { withHidden, reveal, stripHidden } from '../../core/hidden.js';
 
 export const FONTS = [
   {
@@ -77,12 +78,17 @@ const REVERSE = Object.fromEntries(
  * symbols is used.
  * @returns {{ text, font, auto, hits, total, scores, tokens: Array<{src, type, out, name?, code?, mapped?}> }}
  */
-export function fromDingbats(input, fontId = 'auto') {
+export function fromDingbats(raw, fontId = 'auto') {
+  const { visible: input, original } = reveal(String(raw));
   const clean = String(input).replace(/[︎️]/g, '');
   const symbols = Array.from(clean).filter((c) => !/\s/.test(c));
   const scores = FONTS.map((f) => ({ id: f.id, hits: symbols.filter((c) => REVERSE[f.id].has(c)).length }));
   const best = [...scores].sort((a, b) => b.hits - a.hits)[0];
-  const font = fontId === 'auto' ? best.id : fontId;
+  // An invisible copy of the original (core/hidden.js) settles the text and the font
+  // when carving it again gives exactly these symbols.
+  const fits = (id) => original !== null && stripHidden(toDingbats(original, id).text) === clean;
+  const exactFont = fontId === 'auto' ? [best.id, ...FONTS.map((f) => f.id)].find(fits) : fits(fontId) ? fontId : undefined;
+  const font = exactFont ?? (fontId === 'auto' ? best.id : fontId);
   const tokens = Array.from(clean, (c) => {
     if (c === '\n' || c === ' ' || c === '\t') return { src: c, out: c, type: c === '\n' ? 'newline' : 'space' };
     const hit = REVERSE[font].get(c);
@@ -91,7 +97,7 @@ export function fromDingbats(input, fontId = 'auto') {
       : { src: c, out: c, type: 'glyph', name: 'Not in this font, kept as is', code: '', mapped: false };
   });
   return {
-    text: tokens.map((t) => t.out).join(''),
+    text: exactFont ? original : tokens.map((t) => t.out).join(''),
     font,
     auto: fontId === 'auto',
     hits: scores.find((s) => s.id === font).hits,
@@ -118,5 +124,8 @@ export function toDingbats(text, fontId) {
     tokens.push({ src: ch, type: 'glyph', ...g });
     out += g.glyph;
   }
+  // Symbols that several fonts share can be read as another font, so the result
+  // carries an invisible copy of the original when auto-detect wouldn't get it back.
+  if (fromDingbats(out).text !== String(text)) out = withHidden(out, String(text));
   return { text: out, tokens };
 }

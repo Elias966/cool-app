@@ -12,9 +12,10 @@ two apps: every change to a module shows up in both.
   a slim side rail in landscape, the desktop-style layout on tablets, finger-sized
   buttons, and the keyboard never pops up by itself.
 - **Sound** is re-tuned for small speakers (the low end is rebuilt as harmonics the
-  speaker can play, a shorter, drier reverb, more compression), with haptic taps
-  (Vibration toggle in the speaker menu). Typing clicks start off, since phone
-  keyboards click on their own.
+  speaker can play, a shorter, drier reverb, more compression), with vibration on
+  taps, stamps, errors and successes (Vibration toggle in the speaker menu; it
+  works even when the phone's own touch vibration is off). Typing clicks work
+  with the on-screen keyboard (Typing clicks toggle in the same menu).
 - **Local AI** (Braille Quest/Anywhere, Cipher Pact lessons) runs on the phone's CPU
   in a Web Worker (transformers.js + WebAssembly), using the smaller
   Qwen2.5-0.5B-Instruct (≈520 MB, downloaded once from Hugging Face the first time

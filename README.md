@@ -216,7 +216,7 @@ The module translates in both directions. Use the switch in its header to pick
 - **Where it's stored:** an AppImage is read-only, so the model goes in the
   app's data folder, `~/.config/Prism/models/`. To keep everything next to the
   AppImage instead (portable mode), create a folder named
-  `Prism-1.2.0-x86_64.AppImage.config` beside the AppImage before starting it.
+  `Prism-1.2.1-x86_64.AppImage.config` beside the AppImage before starting it.
   All app data, including the model and history, then lives in that folder.
 
 In both modes, press `Enter` or **Send** to translate and `Esc` to clear the box;
@@ -282,7 +282,20 @@ is kept between sessions.
 ## Decode modes
 
 Every module can translate both ways. Braille has Braille → Text, and the
-others have a switch in their console bar:
+others have a switch in their console bar.
+
+**What you encode comes back exactly.** Some styles can't show everything on
+screen: katakana sounds words out, runes use one sign for c, k and q, some
+scripts have no capitals, and Malbolge can only print ASCII. For those, the
+copied result also carries an invisible copy of the original text, written
+with Unicode variation selectors (characters every font leaves undrawn and that
+survive copy and paste). Decoding uses it only when encoding it again gives
+exactly the visible text. If an app strips those characters, the decoder reads
+the visible text itself, picking real English words from a 64,000-word list
+(SCOWL, in `src/core/english.js`). Layered Encoding carries its chain the same
+way, so *Auto-peel* undoes it exactly. Cipher Pact never carries a copy of the
+secret (that would give it away); instead each symbol can carry an invisible
+mark for a capital or an accent, which tells nothing about the letter itself.
 
 - **Base64 → Text:** accepts standard or URL-safe Base64, missing padding,
   spaces and line breaks, and `data:` URIs. The live pipeline runs in reverse
@@ -292,10 +305,10 @@ others have a switch in their console bar:
   every symbol to exactly one key, so decoding is exact.
 - **Script → Text:** reads runes, hieroglyphs, Ogham, Ugaritic, Greek and
   Latin capitals, even mixed together, including Egyptian, Greek and Roman
-  numerals. Where several letters share one sign (ᚲ is C, K and Q), it uses the
-  letter most common in English, so the result is how the inscription reads
-  rather than always the exact original spelling. The Rosetta panel shows the
-  decoded words in all six scripts.
+  numerals. Inscriptions made in Prism come back exactly (see above). For
+  others, where several letters share one sign (ᚲ is C, K and Q), it picks
+  the spelling that makes a real English word (kuikk → quick). The Rosetta
+  panel shows the decoded words in all six scripts.
 - **Program → Text:** paste a Brainfuck, Ook!, Whitespace, Malbolge, Befunge or
   Unary program: the language is detected (click a tab to force one), the
   virtual machine runs it, and you read its output. The Whitespace and Befunge
@@ -322,8 +335,10 @@ others have a switch in their console bar:
   when its output matches your text. The Malbolge interpreter was checked
   against the published Malbolge "Hello, world" program.
 - Malbolge limit: without jumps it can only reach 201 of the 256 byte values,
-  which covers all of ASCII but not the bytes UTF-8 needs, so accents are
-  dropped and other non-ASCII characters become "?" (the app says so).
+  which covers all of ASCII but not the bytes UTF-8 needs, so when it runs,
+  accents are dropped and other non-ASCII characters print as "?" (the app
+  says so). The copied program carries the exact text invisibly, so
+  Program → Text still gives it back.
 
 ## Layered Encoding
 
@@ -348,8 +363,10 @@ others have a switch in their console bar:
   **Kanji-look** (look-alike kanji).
 - Furigana (reading aids above the characters) and vertical writing
   (tategaki) can be switched on.
-- Katakana decoding gives back known English words and romaji for the rest, so
-  it is approximate; the cipher styles decode exactly.
+- Everything you write here decodes back exactly (see *Decode modes*). Katakana
+  from elsewhere is read with a loanword dictionary and the same spelling rules
+  run backwards over 64,000 English words (フロム → from); anything else
+  becomes romaji.
 - Bundles cut-down Noto Sans JP and Noto Serif JP fonts (SIL Open Font License).
 
 ## Cipher Pact

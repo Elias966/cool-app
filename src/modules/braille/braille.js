@@ -2,6 +2,8 @@
 // (uncontracted) rules: capital and capital-word indicators, numeric mode,
 // the grade 1 indicator after numbers, and UEB punctuation.
 
+import { withHidden, reveal, stripHidden } from '../../core/hidden.js';
+
 const LETTERS = {
   a: '⠁', b: '⠃', c: '⠉', d: '⠙', e: '⠑', f: '⠋', g: '⠛', h: '⠓', i: '⠊', j: '⠚',
   k: '⠅', l: '⠇', m: '⠍', n: '⠝', o: '⠕', p: '⠏', q: '⠟', r: '⠗', s: '⠎', t: '⠞',
@@ -157,6 +159,9 @@ export function toBraille(input) {
     }
   }
 
+  // Tabs, accents and the like have no Grade 1 braille, so the result carries an
+  // invisible copy of the original when it wouldn't read back exactly (core/hidden.js).
+  if (fromBraille(text).text !== String(input)) text = withHidden(text, String(input));
   return { text, tokens, cellCount, unknown: [...unknown] };
 }
 
@@ -210,7 +215,8 @@ export function normalizeBraille(input) {
  *   tokens use the same shape as toBraille(): { src, type, parts: [{ cell, role }] },
  *   where `src` is the text a group of cells produced.
  */
-export function fromBraille(input) {
+export function fromBraille(raw) {
+  const { visible: input, original } = reveal(String(raw));
   const cells = normalizeBraille(input);
   const tokens = [];
   const unknown = new Set();
@@ -348,5 +354,7 @@ export function fromBraille(input) {
       cellCount += Array.from(p.cell).length;
     }
   }
+  // The invisible copy wins when it gives exactly this braille.
+  if (original !== null && stripHidden(toBraille(original).text) === input) text = original;
   return { text, braille, tokens, cellCount, unknown: [...unknown] };
 }

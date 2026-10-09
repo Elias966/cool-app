@@ -8,14 +8,16 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.pm.ApplicationInfo;
 import android.graphics.Color;
+import android.media.AudioAttributes;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.VibrationAttributes;
 import android.os.VibrationEffect;
 import android.os.Vibrator;
+import android.os.VibratorManager;
 import android.util.Base64;
 import android.util.Log;
-import android.view.HapticFeedbackConstants;
 import android.view.View;
 import android.view.ViewGroup;
 import android.webkit.ConsoleMessage;
@@ -333,41 +335,67 @@ public class MainActivity extends ComponentActivity {
             runOnUiThread(() -> openExternal(url));
         }
 
-        /** Short buzzes through the system haptics (they follow the phone's touch-feedback setting). */
+        /**
+         * Short buzzes. They go straight to the vibrator rather than through
+         * View.performHapticFeedback, which Android silently drops whenever the
+         * phone's own "touch feedback" vibration is off (the default on many
+         * phones); Prism has its own Vibration switch in the speaker menu.
+         */
         @JavascriptInterface
         public void haptic(String kind) {
-            runOnUiThread(() -> {
-                if (web == null) return;
-                int effect;
-                switch (kind) {
-                    case "error":
-                        if (Build.VERSION.SDK_INT >= 30) effect = HapticFeedbackConstants.REJECT;
-                        else {
-                            pattern(new long[] {0, 18, 60, 18});
-                            return;
-                        }
-                        break;
-                    case "success":
-                        effect = Build.VERSION.SDK_INT >= 30 ? HapticFeedbackConstants.CONFIRM : HapticFeedbackConstants.VIRTUAL_KEY;
-                        break;
-                    case "heavy":
-                        effect = HapticFeedbackConstants.LONG_PRESS;
-                        break;
-                    case "press":
-                        effect = HapticFeedbackConstants.VIRTUAL_KEY;
-                        break;
-                    default:
-                        effect = Build.VERSION.SDK_INT >= 27 ? HapticFeedbackConstants.KEYBOARD_PRESS : HapticFeedbackConstants.KEYBOARD_TAP;
+            Vibrator v = vibrator();
+            if (v == null || !v.hasVibrator()) return;
+            long[] timings;
+            int[] amplitudes;
+            switch (kind == null ? "" : kind) {
+                case "error":
+                    timings = new long[] {0, 22, 70, 22};
+                    amplitudes = new int[] {0, 255, 0, 255};
+                    break;
+                case "success":
+                    timings = new long[] {0, 14, 50, 22};
+                    amplitudes = new int[] {0, 160, 0, 255};
+                    break;
+                case "heavy":
+                    timings = new long[] {0, 40};
+                    amplitudes = new int[] {0, 255};
+                    break;
+                case "press":
+                    timings = new long[] {0, 22};
+                    amplitudes = new int[] {0, 200};
+                    break;
+                default: // tick
+                    timings = new long[] {0, 12};
+                    amplitudes = new int[] {0, 150};
+            }
+            try {
+                if (Build.VERSION.SDK_INT >= 26) {
+                    VibrationEffect effect = v.hasAmplitudeControl()
+                            ? VibrationEffect.createWaveform(timings, amplitudes, -1)
+                            : VibrationEffect.createWaveform(timings, -1);
+                    if (Build.VERSION.SDK_INT >= 33) {
+                        // Media usage: follows the media vibration setting, not touch feedback.
+                        v.vibrate(effect, VibrationAttributes.createForUsage(VibrationAttributes.USAGE_MEDIA));
+                    } else {
+                        v.vibrate(effect, new AudioAttributes.Builder()
+                                .setUsage(AudioAttributes.USAGE_GAME)
+                                .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                                .build());
+                    }
+                } else {
+                    v.vibrate(timings, -1);
                 }
-                web.performHapticFeedback(effect);
-            });
+            } catch (RuntimeException e) {
+                Log.w(TAG, "vibrate failed", e);
+            }
         }
 
-        private void pattern(long[] timings) {
-            Vibrator v = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
-            if (v == null || !v.hasVibrator()) return;
-            if (Build.VERSION.SDK_INT >= 26) v.vibrate(VibrationEffect.createWaveform(timings, -1));
-            else v.vibrate(timings, -1);
+        private Vibrator vibrator() {
+            if (Build.VERSION.SDK_INT >= 31) {
+                VibratorManager manager = (VibratorManager) getSystemService(Context.VIBRATOR_MANAGER_SERVICE);
+                return manager == null ? null : manager.getDefaultVibrator();
+            }
+            return (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
         }
     }
 }

@@ -5,6 +5,9 @@
 // translations into the ancient languages. Every code point here was checked
 // against the Unicode character database.
 
+import { isWord, isCommon, sentenceCase } from '../../core/english.js';
+import { withHidden, reveal, stripHidden } from '../../core/hidden.js';
+
 const strip = (s) => s.normalize('NFD').replace(/[̀-ͯ]/g, '');
 
 // ----------------------------------------------------------------- numerals
@@ -253,7 +256,11 @@ export function convert(input, scriptId) {
       return s.wrap && body ? `${s.wrap[0]}${body}${s.wrap[1]}` : body;
     })
     .join('\n');
-  return { text, lines };
+  // Shared signs, missing case and punctuation lose information on screen, so
+  // the result carries an invisible copy of the original when it wouldn't read
+  // back exactly (see core/hidden.js).
+  const exact = decode(text).text === String(input);
+  return { text: exact ? text : withHidden(text, String(input)), lines, exact };
 }
 
 // ================================================================== decoding
@@ -289,7 +296,8 @@ const GREEK_NUMBERS = {
   Ρ: 100, Σ: 200, Τ: 300, Υ: 400, Φ: 500, Χ: 600, Ψ: 700, Ω: 800, Ϡ: 900,
 };
 
-// sign (one or more characters) -> { out, script, info }
+// sign (one or more characters) -> { out, alts, script, info }
+// `alts` lists every letter the sign stands for, the preferred reading first.
 const SIGNS = new Map();
 for (const s of SCRIPTS) {
   if (s.id === 'latin') continue; // plain Latin letters are handled separately
@@ -298,9 +306,79 @@ for (const s of SCRIPTS) {
     if (key === 'X' && Array.from(out).length > 1) continue;
     const reading = PREFER[s.id][out] ?? key.toLowerCase();
     if (!SIGNS.has(out) || PREFER[s.id][out]) {
-      SIGNS.set(out, { out: reading, script: s.id, info: `${s.name}: ${Array.from(out).map((g) => s.names[g] || g).join(' + ')}` });
+      SIGNS.set(out, { out: reading, alts: SIGNS.get(out)?.alts ?? [], script: s.id, info: `${s.name}: ${Array.from(out).map((g) => s.names[g] || g).join(' + ')}` });
+    }
+    const alts = SIGNS.get(out).alts;
+    if (!alts.includes(key.toLowerCase())) alts.push(key.toLowerCase());
+  }
+}
+for (const sign of SIGNS.values()) sign.alts = [sign.out, ...sign.alts.filter((a) => a !== sign.out)];
+
+/**
+ * Shared signs (ᚲ is c, k and q) make several spellings possible. When the
+ * preferred reading isn't an English word, try the others (and x for ks/cs)
+ * and keep the real word that needs the fewest changes; a very common word
+ * beats a rare one (very over wiry).
+ * @param {string[][]} options readings per position, preferred first
+ * @returns {number[] | null} the chosen index per position, or null to keep the preferred ones
+ */
+function pickSpelling(options) {
+  const preferred = options.map((o) => o[0]).join('');
+  if (isWord(preferred)) return null;
+  let best = null;
+  let combos = 0;
+  const pick = new Array(options.length).fill(0);
+  const visit = (i, changes) => {
+    if (combos > 20000 || (best && changes >= best.changes)) return;
+    if (i === options.length) {
+      combos++;
+      const word = options.map((o, k) => o[pick[k]]).join('');
+      // x was written as two signs: k/c + s
+      const x = !isWord(word) && /[kc]s/.test(word) ? word.replace(/[kc]s/g, 'x') : null;
+      const found = x && isWord(x) ? x : isWord(word) ? word : null;
+      const cost = found ? changes + (x ? 1 : 0) + (isCommon(found) ? 0 : 0.75) : -1;
+      if (cost >= 0 && (!best || cost < best.changes)) best = { changes: cost, pick: [...pick], x: Boolean(x) };
+      return;
+    }
+    for (let k = 0; k < options[i].length; k++) {
+      pick[i] = k;
+      visit(i + 1, changes + (k > 0 ? 1 : 0));
+    }
+  };
+  visit(0, 0);
+  return best;
+}
+
+/** Re-spell each word of decoded sign tokens as a real English word where one fits. */
+function respell(tokens) {
+  const apply = (run) => {
+    const options = run.map((t) => t.alts ?? [t.out]);
+    const best = pickSpelling(options);
+    if (!best) return;
+    run.forEach((t, k) => (t.out = options[k][best.pick[k]]));
+    if (best.x) {
+      // turn the k/c + s pair back into x
+      for (let k = 0; k < run.length - 1; k++) {
+        if (/^[kc]$/.test(run[k].out) && run[k + 1].out === 's') (run[k].out = 'x'), (run[k + 1].out = '');
+      }
+    }
+  };
+  let run = [];
+  for (const t of tokens) {
+    if (t.kind === 'letter' && !t.latin) {
+      run.push(t);
+      continue;
+    }
+    if (run.length) apply(run);
+    run = [];
+    // Latin capitals come as one token per word: try I/J and U/V.
+    if (t.latin) {
+      const options = Array.from(t.out, (c) => (c === 'i' ? ['i', 'j'] : c === 'u' ? ['u', 'v'] : c === 'v' ? ['v', 'u'] : [c]));
+      const best = pickSpelling(options);
+      if (best) t.out = options.map((o, k) => o[best.pick[k]]).join('');
     }
   }
+  if (run.length) apply(run);
 }
 const LONGEST_SIGN = Math.max(...[...SIGNS.keys()].map((k) => Array.from(k).length));
 
@@ -331,8 +409,10 @@ export function detectScript(input) {
  * Ancient script -> readable text. Works on any mix of the six scripts.
  * @returns {{ text: string, script: string|null, tokens: Array<{src, out, info, kind}> }}
  */
-export function decode(input) {
+export function decode(raw) {
+  const { visible: input, original } = reveal(String(raw));
   const chars = Array.from(String(input).normalize('NFC'));
+  const greek = /[Α-Ω]/.test(String(input));
   const tokens = [];
   let i = 0;
   while (i < chars.length) {
@@ -353,8 +433,9 @@ export function decode(input) {
       i += Array.from(greekNum[0]).length;
       continue;
     }
-    if (c in MARKS) {
-      tokens.push({ src: c, out: MARKS[c], info: 'word divider or mark', kind: 'mark' });
+    // NFC turns the Greek question mark (U+037E) into a plain semicolon.
+    if (c in MARKS || (c === ';' && greek)) {
+      tokens.push({ src: c, out: MARKS[c] ?? '?', info: 'word divider or mark', kind: 'mark' });
       i++;
       continue;
     }
@@ -364,7 +445,7 @@ export function decode(input) {
       const piece = chars.slice(i, i + len).join('');
       const sign = SIGNS.get(piece);
       if (sign && Array.from(piece).length === len) {
-        tokens.push({ src: piece, out: sign.out, info: sign.info, kind: 'letter' });
+        tokens.push({ src: piece, out: sign.out, alts: sign.alts.length > 1 ? sign.alts : null, info: sign.info, kind: 'letter' });
         i += len;
         matched = true;
       }
@@ -380,12 +461,13 @@ export function decode(input) {
         continue;
       }
       const read = readLatin(word);
-      tokens.push({ src: word, out: read.toLowerCase(), info: read === word ? 'Latin capitals' : `Latin: ${word} reads as ${read}`, kind: 'letter' });
+      tokens.push({ src: word, out: read.toLowerCase(), latin: true, info: read === word ? 'Latin capitals' : `Latin: ${word} reads as ${read}`, kind: 'letter' });
       continue;
     }
     tokens.push({ src: c, out: c, info: 'kept as is', kind: 'kept' });
     i++;
   }
+  respell(tokens);
   // Which script each piece belongs to (the page draws it in that script's font).
   const MARK_SCRIPT = { '᛫': 'futhark', '᛬': 'futhark', '⁝': 'greek', '·': 'latin', '𐎟': 'cuneiform', ' ': 'ogham', '᚛': 'ogham', '᚜': 'ogham', ';': 'greek' };
   for (const t of tokens) {
@@ -393,13 +475,19 @@ export function decode(input) {
     t.script = SIGNS.get(t.src)?.script
       ?? (EGYPTIAN_NUMBERS[first] ? 'hieroglyphs' : MARK_SCRIPT[first] ?? (/^[͵ΑΒΓΔΕϚΖΗΘΙΚΛΜΝΞΟΠϞΡΣΤΥΦΧΨΩϠ]/.test(first) ? 'greek' : /^[A-Z]/.test(first) ? 'latin' : null));
   }
-  // Tidy spacing, then capitalise the start of each sentence.
-  const text = tokens
-    .map((t) => t.out)
-    .join('')
-    .replace(/[ \t]+/g, ' ')
-    .replace(/ ([.,!?])/g, '$1')
-    .replace(/(^|[.!?]\s+|\n)([a-z])/g, (m, p, l) => p + l.toUpperCase())
-    .trim();
-  return { text, script: detectScript(input), tokens };
+  // Tidy spacing, then capitalise the start of each sentence (and I).
+  const text = sentenceCase(
+    tokens
+      .map((t) => t.out)
+      .join('')
+      .replace(/[ \t]+/g, ' ')
+      .replace(/ ([.,!?])/g, '$1')
+      .trim(),
+  );
+  const script = detectScript(input);
+  // The invisible copy wins when carving it again gives exactly this inscription.
+  if (original !== null && [script, ...SCRIPTS.map((s) => s.id)].some((id) => id && stripHidden(convert(original, id).text) === input)) {
+    return { text: original, script, tokens, exact: true };
+  }
+  return { text, script, tokens };
 }

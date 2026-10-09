@@ -427,8 +427,7 @@ const THROTTLE = { sparkle: 45, key: 18, type: 35, hover: 55, pulse: 90, warp: 2
 
 // ---------------------------------------------------------------- the engine
 function createSound() {
-  // Phone keyboards click on their own, so typing sounds start off there.
-  let settings = { volume: 0.7, muted: false, typing: !HANDHELD, haptics: true };
+  let settings = { volume: 0.7, muted: false, typing: true, haptics: true };
   try {
     settings = { ...settings, ...JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}') };
   } catch {

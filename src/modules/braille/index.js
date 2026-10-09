@@ -1,4 +1,5 @@
 import { toBraille, fromBraille, dotsOf, INDICATORS } from './braille.js';
+import { stripHidden } from '../../core/hidden.js';
 import { AI_SPEC, AI_SIZE_MB, AI_LABEL, SLOT, randomPrompt, markSlots, hidePartialPlaceholder, finalize, randomWord } from './ai-modes.js';
 
 const HISTORY_KEY = 'history';
@@ -304,8 +305,9 @@ export default {
     let busy = null; // the card currently being written
 
     const mb = (bytes) => Math.round(bytes / 1e6);
+    // (inside an AI story the invisible copy of the original couldn't be checked, so it's left out)
     const brailleFor = (value) =>
-      (/[⠀-⣿]/.test(value) ? fromBraille(value).braille : toBraille(value).text).replace(/\s+/g, ' ').trim();
+      stripHidden(/[⠀-⣿]/.test(value) ? fromBraille(value).braille : toBraille(value).text).replace(/\s+/g, ' ').trim();
 
     function aiStatusText(st = aiState) {
       if (st.state === 'checking') return 'Checking for the local AI model…';

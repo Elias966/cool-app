@@ -1,4 +1,5 @@
-import { STYLES, styleById, chartFor, encode, decode, romajiOf, hasJapanese } from './japanese.js';
+import { STYLES, styleById, chartFor, encode, decode, romajiOf, hasJapanese, warmUp } from './japanese.js';
+import { stripHidden } from '../../core/hidden.js';
 
 const HISTORY_KEY = 'history';
 const MAX_HISTORY = 40;
@@ -26,6 +27,9 @@ export default {
     let opts = { furigana: true, vertical: false, ...storage.get('options', {}) };
     let history = storage.get(HISTORY_KEY, []);
     if (!Array.isArray(history)) history = [];
+    // The katakana → English index builds in the background; history cards first
+    // render without it and are redrawn when it's ready.
+    const dictReady = warmUp();
 
     root.classList.add('jp');
     root.innerHTML = `
@@ -205,7 +209,7 @@ export default {
         $('.jp-scroll-label').textContent = demo ? 'example' : styleById(styleId).jp;
         liveText.textContent = res.text.replace(/\n/g, ' ↵ ');
         live.classList.toggle('idle', demo);
-        counter.textContent = demo ? '' : `${Array.from(value).length} → ${Array.from(res.text).length} chars`;
+        counter.textContent = demo ? '' : `${Array.from(value).length} → ${Array.from(stripHidden(res.text)).length} chars`;
         lightRing(res.text);
         markStyles(null);
         return;
@@ -288,9 +292,9 @@ export default {
     });
 
     // --------------------------------------------------------------- cards
-    function addCard(entry, { animate }) {
+    function addCard(entry, { animate, quick = false }) {
       const decoding = entry.mode === 'decode';
-      const res = decoding ? decode(entry.src, entry.style || 'auto') : encode(entry.src, entry.style);
+      const res = decoding ? decode(entry.src, entry.style || 'auto', { quick }) : encode(entry.src, entry.style);
       const card = document.createElement('article');
       card.className = `jp-card${decoding ? ' jp-card-decode' : ''}`;
       card.dataset.id = entry.id;
@@ -302,7 +306,8 @@ export default {
         tags = [`${entry.style === 'auto' || !entry.style ? 'detected' : 'forced'}: ${decodeName(style.id, entry.src)}`];
         if (res.kanji) tags.push(`${res.kanji} kanji kept`);
       } else {
-        tags = [style.name, res.exact ? '✓ reversible' : style.id === 'katakana' ? '≈ sound-alike' : style.id === 'kanjilook' && res.back === entry.src.toLowerCase() ? 'case not kept' : '≈ approximate'];
+        // Lossy styles carry an invisible copy of the original, so they decode exactly too.
+        tags = [style.name, res.exact ? '✓ reversible' : '✓ reversible (exact copy hidden inside)'];
       }
       const romaji = !decoding && (style.id === 'katakana' || style.id === 'mixed');
       card.innerHTML = `
@@ -322,7 +327,7 @@ export default {
         </footer>`;
       const src = entry.src.length > 220 ? `${entry.src.slice(0, 220)}…` : entry.src;
       card.querySelector('.jp-card-src').textContent = src;
-      card.querySelector('.jp-card-meta').textContent = `${Array.from(entry.src).length} → ${Array.from(res.text).length} chars · ${time}`;
+      card.querySelector('.jp-card-meta').textContent = `${Array.from(entry.src).length} → ${Array.from(stripHidden(res.text)).length} chars · ${time}`;
       const out = card.querySelector('.jp-out');
       // Cards always show the result as the base text; the other side is the reading on top.
       out.innerHTML = rubyHtml(res.tokens, { limit: 1200 });
@@ -331,6 +336,14 @@ export default {
         ctx.sound.play('brush');
       }
       Object.assign(card, { _entry: entry, _text: res.text });
+      if (res.pending) {
+        dictReady.then(() => {
+          if (!alive || !card.isConnected) return;
+          const again = decode(entry.src, entry.style || 'auto');
+          out.innerHTML = rubyHtml(again.tokens, { limit: 1200 });
+          card._text = again.text;
+        });
+      }
       feed.appendChild(card);
       cleanups.push(fx.tilt(card, { max: 3, scale: 1.005, perspective: 1400 }));
       card.querySelectorAll('.jp-chip').forEach((b) => fx.ripple(b));
@@ -557,7 +570,7 @@ export default {
     setMode(mode, { animate: false });
     history.forEach((h) => {
       try {
-        addCard(h, { animate: false });
+        addCard(h, { animate: false, quick: true });
       } catch {
         /* a malformed old entry: skip it */
       }

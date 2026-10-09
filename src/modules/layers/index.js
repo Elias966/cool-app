@@ -1,4 +1,5 @@
 import { LAYERS, PRESETS, MAX_DEPTH, layerById, encodeChain, decodeChain, autoPeel, randomChain, recipe } from './layers.js';
+import { stripHidden } from '../../core/hidden.js';
 
 const HISTORY_KEY = 'history';
 const MAX_HISTORY = 40;
@@ -222,7 +223,7 @@ export default {
       renderStack(value, result);
       const live = liveText.parentElement;
       live.classList.remove('err', 'idle');
-      const growth = mode === 'encode' && result.res.ok && demoValue ? result.output.length / Math.max(1, demoValue.length) : 0;
+      const growth = mode === 'encode' && result.res.ok && demoValue ? stripHidden(result.output).length / Math.max(1, demoValue.length) : 0;
       $('.ly-growth').textContent = growth ? `×${growth < 10 ? growth.toFixed(1) : Math.round(growth)} size` : '';
       if (!value) {
         live.classList.add('idle');
@@ -238,7 +239,7 @@ export default {
       }
       showTail(result.output);
       counter.textContent = mode === 'encode'
-        ? `${value.length.toLocaleString()} → ${result.output.length.toLocaleString()} chars`
+        ? `${value.length.toLocaleString()} → ${stripHidden(result.output).length.toLocaleString()} chars`
         : `${result.res.steps.length} layer${result.res.steps.length === 1 ? '' : 's'} peeled`;
     }
     // Encoding is cheap; auto-peel is a search, so it waits for a short pause in typing.
@@ -449,7 +450,7 @@ export default {
         </footer>`;
       const src = entry.src.length > 240 ? `${entry.src.slice(0, 240)}…` : entry.src;
       card.querySelector('.ly-card-src').textContent = src;
-      card.querySelector('.ly-card-meta').textContent = `${entry.src.length.toLocaleString()} → ${res.output.length.toLocaleString()} chars · ${time}`;
+      card.querySelector('.ly-card-meta').textContent = `${entry.src.length.toLocaleString()} → ${stripHidden(res.output).length.toLocaleString()} chars · ${time}`;
       Object.assign(card, { _entry: entry, _output: res.output });
       feed.appendChild(card);
 

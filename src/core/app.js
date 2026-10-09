@@ -322,13 +322,21 @@ addEventListener('pointerover', (e) => {
   if (el && !el.contains(e.relatedTarget)) sound.play('hover', { x: e.clientX });
 });
 
+const isTextField = (t) => t instanceof HTMLTextAreaElement || (t instanceof HTMLInputElement && /^(text|search|)$/.test(t.type));
+let keyClickAt = 0;
 addEventListener('keydown', (e) => {
-  if (!sound.settings.typing || e.ctrlKey || e.metaKey || e.altKey) return;
-  const t = e.target;
-  const typing = t instanceof HTMLTextAreaElement || (t instanceof HTMLInputElement && /^(text|search|)$/.test(t.type));
-  if (!typing) return;
+  if (!sound.settings.typing || e.ctrlKey || e.metaKey || e.altKey || !isTextField(e.target)) return;
   if (e.key.length === 1) sound.play('key');
   else if (e.key === 'Backspace' || e.key === 'Delete') sound.play('key', { low: true });
+  else return;
+  keyClickAt = performance.now();
+}, true);
+// Phone keyboards report almost every key as "Unidentified" (key code 229), so
+// the click follows the text change instead (unless keydown just played it).
+addEventListener('beforeinput', (e) => {
+  if (!sound.settings.typing || !isTextField(e.target) || performance.now() - keyClickAt < 80) return;
+  if (/^insert(Text|CompositionText|ReplacementText)$/.test(e.inputType)) sound.play('key');
+  else if (e.inputType.startsWith('delete')) sound.play('key', { low: true });
 }, true);
 
 // The sound control in the title bar: click for the panel, scroll to change volume.

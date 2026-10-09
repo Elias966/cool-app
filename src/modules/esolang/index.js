@@ -1,4 +1,4 @@
-import { LANGS, compile, machineFor, runToEnd, toTernary, OOK, detectLanguage, loadProgram } from './esolangs.js';
+import { LANGS, compile, machineFor, runToEnd, toTernary, OOK, detectLanguage, loadProgram, hiddenText } from './esolangs.js';
 
 const HISTORY_KEY = 'history';
 const MAX_HISTORY = 30;
@@ -198,7 +198,9 @@ export default {
       let text = '';
       let error = '';
       try {
-        text = runToEnd(l, compiled, 3_000_000);
+        // A program made here can carry the exact text it was made from (Malbolge
+        // can't print non-ASCII); that wins over the "?" the machine prints.
+        text = hiddenText(code, l) ?? runToEnd(l, compiled, 3_000_000);
       } catch (err) {
         error = err.message === 'Step limit reached' ? 'Still running after 3,000,000 steps (an endless loop?)' : err.message;
       }
@@ -558,7 +560,7 @@ export default {
         startRun();
       } else if (act === 'copy-out') copy(p.text, 'Output');
       else if (act === 'copy-prog') copy(p.src, 'Program');
-      else if (act === 'copy') copy(p.compiled.code, p.lang === 'unary' ? 'Number of zeros' : 'Program');
+      else if (act === 'copy') copy(p.compiled.copy ?? p.compiled.code, p.lang === 'unary' ? 'Number of zeros' : 'Program');
       else if (act === 'copy-src') copy(p.text, 'Original text');
       else if (act === 'delete') {
         history = history.filter((h) => String(h.id) !== card.dataset.id);

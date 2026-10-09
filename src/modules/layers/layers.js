@@ -4,6 +4,8 @@
 const utf8 = new TextEncoder();
 const strictUtf8 = new TextDecoder('utf-8', { fatal: true });
 
+import { withHidden, reveal, stripHidden } from '../../core/hidden.js';
+
 /** Intermediate strings above this length stop the chain (binary is 9x per layer). */
 export const MAX_LENGTH = 400_000;
 export const MAX_DEPTH = 8;
@@ -335,13 +337,16 @@ export function encodeChain(text, chain) {
     steps.push({ layer, out: cur });
   }
   const back = decodeChain(cur, chain);
-  return { ok: true, steps, output: cur, verified: back.ok && back.output === text };
+  // The result carries the chain invisibly (core/hidden.js), so Auto-peel can undo
+  // it exactly instead of guessing.
+  const output = chain.length ? withHidden(cur, `layers:${chain.join(',')}`) : cur;
+  return { ok: true, steps, output, verified: back.ok && back.output === text };
 }
 
 /** Undo `chain` (ids, in encoding order): its layers are peeled last to first. */
 export function decodeChain(text, chain) {
   const steps = [];
-  let cur = text;
+  let cur = stripHidden(text);
   for (let i = chain.length - 1; i >= 0; i--) {
     const layer = layerById(chain[i]);
     try {
@@ -454,7 +459,16 @@ const CIPHER_COST = 0.05;
 /** Longest run of blind cipher layers the search tries in a row. */
 const MAX_CIPHER_RUN = 4;
 
-export function autoPeel(text, { maxDepth = 10, beam } = {}) {
+export function autoPeel(raw, { maxDepth = 10, beam } = {}) {
+  const { visible: text, original } = reveal(raw);
+  // A chain carried invisibly by encodeChain(): use it when it really made this text.
+  const chain = /^layers:([\w,]+)$/.exec(original ?? '')?.[1].split(',').filter((id) => layerById(id));
+  if (chain?.length) {
+    const back = decodeChain(text, chain);
+    if (back.ok && encodeChain(back.output, chain).steps.at(-1)?.out === text) {
+      return { steps: back.steps, output: back.output, score: readability(back.output), chain };
+    }
+  }
   const width = beam ?? (text.length > 20_000 ? 6 : text.length > 4_000 ? 12 : 28);
   const start = { text, path: [], score: readability(text) };
   start.readable = start.score;

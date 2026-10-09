@@ -8,6 +8,8 @@
 //
 // Pure functions only (no DOM), so Node can test them.
 
+import { withHidden, reveal } from '../../core/hidden.js';
+
 export const LETTERS = 'abcdefghijklmnopqrstuvwxyz0123456789';
 
 // Every theme has at least 36 symbols that look clearly different from each
@@ -122,22 +124,65 @@ export function keyFor(rawCode) {
 /** Letters lose their accents and case (é → e, Q → q); everything else is kept. */
 const plain = (c) => c.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 
+// Capitals and accents ride along as invisible marks right after a letter's
+// symbol (variation selectors, which fonts never draw): U+E0100 for a capital,
+// U+E0101 + n for the combining mark U+0300 + n. They only tell which letters
+// are capitals or accented, not which letters they are, so É decodes as É.
+const CAPITAL = 0xe0100;
+const ACCENT = 0xe0101;
+const isMark = (c) => c !== undefined && c.codePointAt(0) >= CAPITAL && c.codePointAt(0) <= ACCENT + 0x6f;
+
+/** The invisible marks for letter `c`, '' for a plain small letter, or null if they can't be written. */
+function marksFor(c) {
+  const d = c.normalize('NFD');
+  let out = d[0] !== d[0].toLowerCase() ? String.fromCodePoint(CAPITAL) : '';
+  for (const m of d.slice(1)) {
+    const n = m.codePointAt(0) - 0x300;
+    if (n < 0 || n > 0x6f) return null;
+    out += String.fromCodePoint(ACCENT + n);
+  }
+  return out;
+}
+
+/** `letter` with the marks that follow position `i` of `chars` applied; returns { out, next }. */
+function applyMarks(letter, chars, i) {
+  let upper = false;
+  let accents = '';
+  while (isMark(chars[i])) {
+    const v = chars[i++].codePointAt(0);
+    if (v === CAPITAL) upper = true;
+    else accents += String.fromCodePoint(0x300 + v - ACCENT);
+  }
+  return { out: ((upper ? letter.toUpperCase() : letter) + accents).normalize('NFC'), next: i };
+}
+
 /** Text → symbols. Returns the string and one token per character, for animation. */
 export function encodeWith(key, text) {
   const tokens = Array.from(text, (c) => {
     const p = plain(c);
     const s = p.length === 1 ? key.toSymbol.get(p) : undefined;
-    return s ? { src: c, out: s, letter: p, index: LETTERS.indexOf(p) } : { src: c, out: c };
+    const marks = s ? marksFor(c) : null;
+    return marks !== null ? { src: c, out: s + marks, letter: p, index: LETTERS.indexOf(p) } : { src: c, out: c };
   });
   return { text: tokens.map((t) => t.out).join(''), tokens };
 }
 
 /** Symbols → text. Anything that isn't one of the key's symbols is kept as it is. */
 export function decodeWith(key, text) {
-  const tokens = Array.from(text.replace(/️/g, ''), (c) => {
+  const chars = Array.from(text.replace(/️/g, ''));
+  const tokens = [];
+  for (let i = 0; i < chars.length; ) {
+    const c = chars[i];
     const l = key.toLetter.get(c);
-    return l ? { src: c, out: l, letter: l, index: LETTERS.indexOf(l) } : { src: c, out: c };
-  });
+    if (!l) {
+      tokens.push({ src: c, out: c });
+      i++;
+      continue;
+    }
+    const { out, next } = applyMarks(l, chars, i + 1);
+    tokens.push({ src: chars.slice(i, next).join(''), out, letter: l, index: LETTERS.indexOf(l) });
+    i = next;
+  }
   return { text: tokens.map((t) => t.out).join(''), tokens };
 }
 
@@ -177,7 +222,8 @@ export function composeMessage({ note, key, secret, lesson }) {
   if (note) lines.push(note.trim(), '');
   if (lesson.clues.length) lines.push(`🔑 Clues: ${lesson.clues.map((c) => `${c.symbol} = ${c.letter}`).join(' · ')}`);
   if (lesson.warmup) lines.push(`✏️ Warm-up: ${lesson.warmup.symbols} = ${lesson.warmup.word}`);
-  lines.push(`🔒 ${encodeWith(key, secret).text}`);
+  // One 🔒 line per line of the secret, so a multi-line secret comes back whole.
+  for (const line of secret.split('\n')) lines.push(`🔒 ${encodeWith(key, line).text}`);
   return lines.join('\n');
 }
 
@@ -231,7 +277,10 @@ export function findKey(text, codes) {
 }
 
 /** The sealed line of a message (after 🔒), or the whole text if there is none. */
-export const secretLine = (text) => /🔒\s*([^\n]*)/u.exec(text)?.[1] ?? text;
+export function secretLine(text) {
+  const lines = Array.from(text.matchAll(/🔒 ?([^\n]*)/gu), (m) => m[1]);
+  return lines.length ? lines.join('\n') : text;
+}
 
 // ----------------------------------------------------- message styles
 // How the key travels with the message. "clues" keeps it separate (the key
@@ -270,6 +319,14 @@ const bare = (w) => w.toLowerCase();
  * after the note, `legend` the pairs shown as chips and `line` the coded text.
  */
 export function buildStyle(styleId, key, secret, rand = Math.random) {
+  const built = buildVisible(styleId, key, secret, rand);
+  if (!built || parseInline(built.body)?.secret === secret) return built;
+  // Reads back with different spacing: tuck an invisible copy of the secret in.
+  const line = withHidden(built.line, secret);
+  return { ...built, line, body: built.body.replace(built.line, () => line) };
+}
+
+function buildVisible(styleId, key, secret, rand) {
   if (styleId === 'letters') {
     const used = [...new Set(Array.from(plain(secret)).filter((c) => key.toSymbol.has(c)))];
     const legend = shuffled(used, rand).map((l) => ({ from: l.toUpperCase(), to: key.toSymbol.get(l) }));
@@ -277,33 +334,35 @@ export function buildStyle(styleId, key, secret, rand = Math.random) {
     return { legend, line, body: `code: ${legend.map((p) => `${p.from}=${p.to}`).join(', ')}.\n${line}` };
   }
   if (styleId === 'words') {
-    const words = [...new Map(Array.from(secret.matchAll(WORD), (m) => [bare(m[0]), m[0]])).values()];
+    // One code per spelling, so "Hi" and "hi" both come back as written.
+    const words = [...new Set(Array.from(secret.matchAll(WORD), (m) => m[0]))];
     const pool = shuffled(DECOYS.filter((d) => !words.some((w) => bare(w) === d)), rand);
-    const codeOf = new Map(words.map((w, i) => [bare(w), pool[i % pool.length] + (i >= pool.length ? i : '')]));
-    const legend = words.map((w) => ({ from: codeOf.get(bare(w)), to: w }));
-    const line = secret.replace(WORD, (w) => codeOf.get(bare(w)));
+    const codeOf = new Map(words.map((w, i) => [w, pool[i % pool.length] + (i >= pool.length ? i : '')]));
+    const legend = words.map((w) => ({ from: codeOf.get(w), to: w }));
+    const line = secret.replace(WORD, (w) => codeOf.get(w));
     return { legend, line, body: `Cipher: ${legend.map((p) => `When I say '${p.from}' I mean '${p.to}'.`).join(' ')} Now: ${line}` };
   }
   if (styleId === 'numbers') {
-    // Every letter or digit gets a number, in the order it first appears.
-    const chars = [...new Set(Array.from(secret).filter((c) => /[\p{L}\p{N}]/u.test(c)))];
+    // Every letter or digit gets a number, in the order it first appears. So does a
+    // hyphen inside a word (42-17), since a bare - already joins the numbers.
+    const chars = [...new Set(Array.from(secret).filter((c) => /[\p{L}\p{N}-]/u.test(c)))];
     const num = new Map(chars.map((c, i) => [c, i + 1]));
     const legend = chars.map((c) => ({ from: String(num.get(c)), to: c }));
     const line = secret
       .trim()
       .split(/\s+/)
-      .map((w) => w.replace(/[\p{L}\p{N}]+/gu, (run) => Array.from(run, (c) => num.get(c)).join('-')))
+      .map((w) => w.replace(/[\p{L}\p{N}-]+/gu, (run) => Array.from(run, (c) => num.get(c)).join('-')))
       .join(' / ');
     return { legend, line, body: `mapping: ${legend.map((p) => `${p.from}=${p.to}`).join(', ')}.  ${line}` };
   }
   if (styleId === 'emoji') {
-    const words = [...new Map(Array.from(secret.matchAll(WORD), (m) => [bare(m[0]), m[0]])).values()];
+    const words = [...new Set(Array.from(secret.matchAll(WORD), (m) => m[0]))];
     const pool = shuffled(PALETTE, rand);
     const extra = shuffled(Array.from(themeById('emoji').symbols), rand);
-    const emojiOf = new Map(words.map((w, i) => [bare(w), pool[i] ?? extra[i - pool.length] ?? `#${i}`]));
-    const legend = words.map((w) => ({ from: emojiOf.get(bare(w)), to: w }));
+    const emojiOf = new Map(words.map((w, i) => [w, pool[i] ?? extra[i - pool.length] ?? `#${i}`]));
+    const legend = words.map((w) => ({ from: emojiOf.get(w), to: w }));
     // Words sit side by side like in "🔴🔵🟢🟡"; a space survives only after punctuation.
-    const line = secret.trim().replace(WORD, (w) => emojiOf.get(bare(w))).replace(/(?<=[\p{L}\p{N}\p{Extended_Pictographic}⬛⬜])\s+(?=\S)/gu, '');
+    const line = secret.trim().replace(WORD, (w) => emojiOf.get(w)).replace(/(?<=[\p{L}\p{N}\p{Extended_Pictographic}⬛⬜])\s+(?=\S)/gu, '');
     return { legend, line, body: `Our secret language: ${legend.map((p) => `${p.from}=${p.to}`).join(', ')}. ${line}` };
   }
   return null;
@@ -316,12 +375,26 @@ const Q = `['"‘’“”]`;
  * also when written by hand). Returns { secret, style, legend } or null.
  */
 export function parseInline(text) {
+  const { visible, original } = reveal(text);
+  const res = readInline(visible);
+  // Key-inside messages that wouldn't read back exactly (spacing, line breaks)
+  // carry an invisible copy of the secret; it's used when it matches what the
+  // visible message says.
+  const loose = (x) => x.replace(/[^\p{L}\p{N}]/gu, '').toLowerCase(); // letters and digits only
+  if (res && original !== null && loose(original) === loose(res.secret)) res.secret = original;
+  // Nothing in it had a code (only emoji, say): the invisible copy is all there is.
+  if (!res && original !== null) return { style: 'letters', secret: original, legend: [] };
+  return res;
+}
+
+function readInline(text) {
   const t = text.replace(/️/g, '');
   // When I say 'apple' I mean 'cool'. … Now: apple banana
-  const says = [...t.matchAll(new RegExp(`When I say ${Q}?([^'"‘’“”]+?)${Q}? I mean ${Q}?([^'"‘’“”]+?)${Q}?\\s*[.!;,]`, 'gi'))];
+  // (the meaning can hold an apostrophe: I mean 'Don't'.)
+  const says = [...t.matchAll(new RegExp(`When I say ${Q}?([^'"‘’“”]+?)${Q}? I mean ${Q}?(.+?)${Q}?\\s*[.!;,](?=\\s|$)`, 'gi'))];
   if (says.length) {
     const map = new Map(says.map((m) => [bare(m[1].trim()), m[2].trim()]));
-    const now = /\bNow\s*:\s*([^\n]*)/i.exec(t)?.[1] ?? t.slice(says.at(-1).index + says.at(-1)[0].length);
+    const now = /\bNow\s*:\s*([\s\S]*)/i.exec(t)?.[1] ?? t.slice(says.at(-1).index + says.at(-1)[0].length);
     const secret = now.trim().replace(WORD, (w) => map.get(bare(w)) ?? w);
     return { style: 'words', secret, legend: says.map((m) => ({ from: m[1].trim(), to: m[2].trim() })) };
   }
@@ -329,7 +402,7 @@ export function parseInline(text) {
   const mapping = /mapping\s*:\s*((?:\d+\s*=\s*[^\s,.;]+\s*[,;]?\s*)+)\.?/i.exec(t);
   if (mapping) {
     const map = new Map(Array.from(mapping[1].matchAll(/(\d+)\s*=\s*([^\s,.;]+)/g), (m) => [m[1], m[2]]));
-    const rest = t.slice(mapping.index + mapping[0].length).trim().split('\n')[0];
+    const rest = t.slice(mapping.index + mapping[0].length).trim();
     const secret = rest
       .split(/\s*\/\s*|\s{2,}|\s(?=\d)/)
       .map((w) => w.replace(/\d+(?:-\d+)*/g, (run) => run.split('-').map((n) => map.get(n) ?? n).join('')))
@@ -344,12 +417,12 @@ export function parseInline(text) {
     const end = pairs.length ? pairs.at(-1).index + pairs.at(-1)[0].length : 0;
     const map = new Map(pairs.map((m) => [m[1], m[2].trim()]));
     const keys = [...map.keys()].sort((a, b) => b.length - a.length);
-    let rest = after.slice(end).replace(/^[\s.,;]+/, '').split('\n')[0];
+    let rest = after.slice(end).replace(/^[\s.,;]+/, '');
     let out = '';
     while (rest) {
       const k = keys.find((x) => rest.startsWith(x));
       if (k) {
-        if (out && !/[\s(“"']$/.test(out)) out += ' ';
+        if (out && !/[\s(“"'/-]$/.test(out)) out += ' ';
         out += map.get(k);
         rest = rest.slice(k.length);
       } else {
@@ -371,8 +444,15 @@ export function parseInline(text) {
     while (rest) {
       const k = keys.find((x) => rest.startsWith(x));
       const ch = k ?? Array.from(rest)[0];
-      out += k ? map.get(k) : ch;
       rest = rest.slice(ch.length);
+      if (!k) {
+        out += ch;
+        continue;
+      }
+      const chars = Array.from(rest);
+      const { out: letter, next } = applyMarks(map.get(k), chars, 0);
+      out += letter;
+      rest = chars.slice(next).join('');
     }
     return { style: 'letters', secret: out.trim(), legend: pairs.map(([to, from]) => ({ from: from.toUpperCase(), to })) };
   }
