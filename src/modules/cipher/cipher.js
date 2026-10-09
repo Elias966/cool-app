@@ -23,8 +23,26 @@ export const THEMES = [
   { id: 'arcane', color: '#f472b6', name: 'Arcane Math', icon: '∮', font: 'math', symbols: '∀∂∃∅∇∈∉∋∏∑∓∗∘√∝∞∠∡∢∧∨∩∪∫∬∮∴∵∶∷∼≀≃≈≋≡≢≣⊂⊃⊄⊅⊆⊇' },
   { id: 'tabletop', color: '#facc15', name: 'Tabletop', icon: '♞', font: 'sym2', symbols: '♔♕♖♗♘♙♚♛♜♝♞♟♠♡♢♣♤♥♦♧⚀⚁⚂⚃⚄⚅♩♪♫♬♭♮♯⚐⚑⚒⚔⚖⚗⚙⚛⚜' },
   { id: 'dots', color: '#38bdf8', name: 'Dot Matrix', icon: '⣿', font: 'sym2', symbols: Array.from({ length: 255 }, (_, i) => String.fromCharCode(0x2801 + i)).join('') },
-  { id: 'emoji', color: '#fb7185', name: 'Emoji', icon: '🔮', font: 'emoji', symbols: '🌙🔥⚡🍀🌊🍄🐍🦊🐙🦉🌵🍒🎲🔮🌸🍉🐝🦋🐢🌈🍕🎈💎👻🌻🐳🦄🍩🚀🪐🌋🍋🐸🦀🌽🎃🐧🍓🌶🧊' },
+  { id: 'emoji', color: '#fb7185', name: 'Emoji', icon: '🔮', font: 'emoji', colorful: true, symbols: '🌙🔥⚡🍀🌊🍄🐍🦊🐙🦉🌵🍒🎲🔮🌸🍉🐝🦋🐢🌈🍕🎈💎👻🌻🐳🦄🍩🚀🪐🌋🍋🐸🦀🌽🎃🐧🍓🌶🧊' },
 ];
+// The Color boxes alphabet: coloured squares, circles, hearts, books and gems, one
+// per letter or digit. It belongs to keys whose code starts with BOX- (made by
+// the 🟥 Color boxes style), so the key card, the wheel and Read all use it.
+// Kept out of THEMES: adding a theme there would change every existing code.
+export const BOXES = {
+  id: 'boxes', color: '#f43f5e', name: 'Color boxes', icon: '🟥', font: 'emoji', colorful: true,
+  symbols: '🟥🟧🟨🟩🟦🟪🟫⬛⬜🔴🟠🟡🟢🔵🟣🟤⚫⚪💗🧡💛💚💙💜🤎🖤🤍📕📗📘📙🔶🔷💠⭐🔘',
+};
+// The Emoji letters alphabet: everyday emoji (all shown in colour without an
+// extra selector), for keys whose code starts with EMO- (the 😀 Emoji letters style).
+export const EMOJIS = {
+  id: 'emojis', color: '#fbbf24', name: 'Emoji letters', icon: '😀', font: 'emoji', colorful: true,
+  symbols: '😀😂😍😎🤔😴🤖👻👽🎃🐶🐱🦊🐸🐵🐼🐧🦄🐝🐙🍕🍔🍩🍉🍓🍒🌮🍦⚽🎸🚀🌈🔥🌙💎🎁🎈',
+};
+// Code prefix → alphabet. Other codes pick one of THEMES from their hash.
+const ALPHABETS = { 'BOX-': BOXES, 'EMO-': EMOJIS };
+const PREFIX = { boxes: 'BOX-', emojis: 'EMO-' };
+
 // Alchemical symbols, minus the ones Noto draws with Latin letters or digits
 // (QE, AR, SSS, MB…), which would look like readable plaintext.
 function alchemy() {
@@ -52,9 +70,10 @@ const NOUN = (
 export const normalizeCode = (code) => String(code).toUpperCase().trim().replace(/[\s_-]+/g, '-').replace(/^-|-$/g, '');
 
 /** A new random key code, e.g. "EMBER-OWL-735" (about two million possibilities). */
-export function newCode(rand = cryptoRandom) {
+/** A new key code; `alphabet` 'boxes' or 'emojis' makes a BOX- or EMO- code for that alphabet. */
+export function newCode(rand = cryptoRandom, { alphabet } = {}) {
   const pick = (list) => list[Math.floor(rand() * list.length)];
-  return `${pick(ADJ)}-${pick(NOUN)}-${100 + Math.floor(rand() * 900)}`;
+  return `${PREFIX[alphabet] ?? ''}${pick(ADJ)}-${pick(NOUN)}-${100 + Math.floor(rand() * 900)}`;
 }
 
 function cryptoRandom() {
@@ -100,7 +119,8 @@ export function keyFor(rawCode) {
   const code = normalizeCode(rawCode);
   if (cache.has(code)) return cache.get(code);
   const rand = mulberry32(seedOf(`cipher-pact:${code}`));
-  const theme = THEMES[Math.floor(rand() * THEMES.length)];
+  const picked = THEMES[Math.floor(rand() * THEMES.length)];
+  const theme = Object.entries(ALPHABETS).find(([p]) => code.startsWith(p))?.[1] ?? picked;
   const pool = Array.from(theme.symbols);
   // Fisher–Yates, then keep the first 36.
   for (let i = pool.length - 1; i > 0; i--) {
@@ -121,7 +141,7 @@ export function keyFor(rawCode) {
 }
 
 // -------------------------------------------------------- encode / decode
-/** Letters lose their accents and case (é → e, Q → q); everything else is kept. */
+/** A letter's alphabet slot: accents and case come off here (é → e, Q → q) and travel as invisible marks. */
 const plain = (c) => c.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 
 // Capitals and accents ride along as invisible marks right after a letter's
@@ -130,6 +150,10 @@ const plain = (c) => c.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 // are capitals or accented, not which letters they are, so É decodes as É.
 const CAPITAL = 0xe0100;
 const ACCENT = 0xe0101;
+// A character of the secret that happens to be one of the key's own symbols (🍕
+// in the Emoji alphabet) is followed by this mark, so it reads back as itself.
+const LITERAL = String.fromCodePoint(0xe01ec);
+const VS16 = '\ufe0f'; // emoji presentation selector
 const isMark = (c) => c !== undefined && c.codePointAt(0) >= CAPITAL && c.codePointAt(0) <= ACCENT + 0x6f;
 
 /** The invisible marks for letter `c`, '' for a plain small letter, or null if they can't be written. */
@@ -158,18 +182,26 @@ function applyMarks(letter, chars, i) {
 
 /** Text → symbols. Returns the string and one token per character, for animation. */
 export function encodeWith(key, text) {
-  const tokens = Array.from(text, (c) => {
+  const chars = Array.from(text);
+  const tokens = [];
+  for (let i = 0; i < chars.length; i++) {
+    const c = chars[i];
     const p = plain(c);
     const s = p.length === 1 ? key.toSymbol.get(p) : undefined;
     const marks = s ? marksFor(c) : null;
-    return marks !== null ? { src: c, out: s + marks, letter: p, index: LETTERS.indexOf(p) } : { src: c, out: c };
-  });
+    if (marks !== null) tokens.push({ src: c, out: s + marks, letter: p, index: LETTERS.indexOf(p) });
+    else if (key.toLetter.has(c)) {
+      // One of the key's symbols typed in the secret: keep it (with its emoji selector), marked literal.
+      const vs = chars[i + 1] === VS16 ? (i++, VS16) : '';
+      tokens.push({ src: c + vs, out: c + vs + LITERAL });
+    } else tokens.push({ src: c, out: c });
+  }
   return { text: tokens.map((t) => t.out).join(''), tokens };
 }
 
 /** Symbols → text. Anything that isn't one of the key's symbols is kept as it is. */
 export function decodeWith(key, text) {
-  const chars = Array.from(text.replace(/️/g, ''));
+  const chars = Array.from(text);
   const tokens = [];
   for (let i = 0; i < chars.length; ) {
     const c = chars[i];
@@ -179,7 +211,14 @@ export function decodeWith(key, text) {
       i++;
       continue;
     }
-    const { out, next } = applyMarks(l, chars, i + 1);
+    // Apps sometimes add an emoji selector after a symbol (🌶 → 🌶️); it isn't part of the code.
+    const j = chars[i + 1] === VS16 ? i + 2 : i + 1;
+    if (chars[j] === LITERAL) {
+      tokens.push({ src: chars.slice(i, j + 1).join(''), out: chars.slice(i, j).join('') });
+      i = j + 1;
+      continue;
+    }
+    const { out, next } = applyMarks(l, chars, j);
     tokens.push({ src: chars.slice(i, next).join(''), out, letter: l, index: LETTERS.indexOf(l) });
     i = next;
   }
@@ -249,10 +288,18 @@ export function parseClues(text) {
 }
 
 const MARKERS = /[🔑✏🔒️]/gu;
+let allSymbols = null;
 
-/** Characters in a message that could be cipher symbols (not ASCII, not our markers). */
+/**
+ * The cipher symbols in a message: characters of any theme's alphabet, read
+ * from the coded lines only (🔑 / ✏️ / 🔒) when there are any, since the note
+ * can hold any script or emoji. Symbols typed literally in the secret don't count.
+ */
 function symbolsIn(text) {
-  return Array.from(text.replace(MARKERS, '')).filter((c) => c.codePointAt(0) > 0x7f && !/\s|[·…—–“”‘’]/.test(c));
+  const coded = /🔒/u.test(text) ? text.split('\n').filter((l) => /^\s*(🔒|🔑|✏)/u.test(l)).join('\n') : text;
+  const chars = Array.from(coded.replace(MARKERS, ''));
+  allSymbols ??= new Set([...THEMES, BOXES, EMOJIS].flatMap((t) => Array.from(t.symbols)));
+  return chars.filter((c, i) => allSymbols.has(c) && chars[i + 1] !== LITERAL && !(chars[i + 1] === VS16 && chars[i + 2] === LITERAL));
 }
 
 /**
@@ -291,8 +338,13 @@ export const STYLES = [
   { id: 'letters', icon: '🔤', name: 'Letter code', blurb: '“code: A=✦, B=✧” then the message in symbols', keyInside: true },
   { id: 'words', icon: '🍎', name: 'Word swap', blurb: '“When I say ‘apple’ I mean ‘cool’” then the code words', keyInside: true },
   { id: 'numbers', icon: '🔢', name: 'Number map', blurb: '“mapping: 1=y, 2=i” then 1-2-3', keyInside: true },
-  { id: 'emoji', icon: '🟢', name: 'Emoji words', blurb: '“Our secret language: 🔴=hide” then 🔴🔵', keyInside: true },
+  { id: 'boxes', icon: '🟥', name: 'Color boxes', blurb: 'every letter is a coloured box: “code: A=🟥, B=🟦” then 🟥🟦', keyInside: true },
+  { id: 'emojis', icon: '😀', name: 'Emoji letters', blurb: 'every letter is an emoji: “code: A=🍕, B=🦊” then 🍕🦊', keyInside: true },
+  // Older messages: one emoji per word. Still read and shown, no longer offered.
+  { id: 'emoji', icon: '🟢', name: 'Emoji words', blurb: '“Our secret language: 🔴=hide” then 🔴🔵', keyInside: true, legacy: true },
 ];
+/** The styles offered for new messages. */
+export const PICKABLE = STYLES.filter((s) => !s.legacy);
 export const styleById = (id) => STYLES.find((s) => s.id === id) || STYLES[0];
 
 const DECOYS = (
@@ -327,7 +379,8 @@ export function buildStyle(styleId, key, secret, rand = Math.random) {
 }
 
 function buildVisible(styleId, key, secret, rand) {
-  if (styleId === 'letters') {
+  // Color boxes and Emoji letters are Letter code written with a BOX- / EMO- key's alphabet.
+  if (styleId === 'letters' || styleId === 'boxes' || styleId === 'emojis') {
     const used = [...new Set(Array.from(plain(secret)).filter((c) => key.toSymbol.has(c)))];
     const legend = shuffled(used, rand).map((l) => ({ from: l.toUpperCase(), to: key.toSymbol.get(l) }));
     const line = encodeWith(key, secret).text;
@@ -357,8 +410,10 @@ function buildVisible(styleId, key, secret, rand) {
   }
   if (styleId === 'emoji') {
     const words = [...new Set(Array.from(secret.matchAll(WORD), (m) => m[0]))];
-    const pool = shuffled(PALETTE, rand);
-    const extra = shuffled(Array.from(themeById('emoji').symbols), rand);
+    // Code emoji never repeat one the secret already holds ("hide the 🔵 key").
+    const inSecret = new Set(Array.from(secret.replace(/\ufe0f/g, '')));
+    const pool = shuffled(PALETTE.filter((e) => !inSecret.has(e)), rand);
+    const extra = shuffled(Array.from(themeById('emoji').symbols).filter((e) => !inSecret.has(e)), rand);
     const emojiOf = new Map(words.map((w, i) => [w, pool[i] ?? extra[i - pool.length] ?? `#${i}`]));
     const legend = words.map((w) => ({ from: emojiOf.get(w), to: w }));
     // Words sit side by side like in "🔴🔵🟢🟡"; a space survives only after punctuation.
@@ -445,16 +500,24 @@ function readInline(text) {
       const k = keys.find((x) => rest.startsWith(x));
       const ch = k ?? Array.from(rest)[0];
       rest = rest.slice(ch.length);
+      const chars = Array.from(rest);
+      const j = chars[0] === VS16 ? 1 : 0;
+      if (chars[j] === LITERAL) {
+        // a symbol typed in the secret itself: it stays as it is
+        out += ch + (j ? VS16 : '');
+        rest = chars.slice(j + 1).join('');
+        continue;
+      }
       if (!k) {
         out += ch;
         continue;
       }
-      const chars = Array.from(rest);
-      const { out: letter, next } = applyMarks(map.get(k), chars, 0);
+      const { out: letter, next } = applyMarks(map.get(k), chars, j);
       out += letter;
       rest = chars.slice(next).join('');
     }
-    return { style: 'letters', secret: out.trim(), legend: pairs.map(([to, from]) => ({ from: from.toUpperCase(), to })) };
+    const all = (alphabet) => pairs.length > 0 && pairs.every(([sym]) => Array.from(alphabet.symbols).includes(sym));
+    return { style: all(BOXES) ? 'boxes' : all(EMOJIS) ? 'emojis' : 'letters', secret: out.trim(), legend: pairs.map(([to, from]) => ({ from: from.toUpperCase(), to })) };
   }
   return null;
 }

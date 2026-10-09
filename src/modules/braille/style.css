@@ -27,7 +27,8 @@
   border: 2px solid var(--accent); opacity: 0; pointer-events: none; z-index: 5;
   box-shadow: 0 0 40px var(--accent), inset 0 0 30px var(--accent);
 }
-.br-locked .br-shock { animation: brShock 1s cubic-bezier(0.1, 0.8, 0.2, 1) forwards; }
+/* no fill: the resting style is already invisible, and keeping the last frame (scaled 32x) stuck out of the page */
+.br-locked .br-shock { animation: brShock 1s cubic-bezier(0.1, 0.8, 0.2, 1); }
 @keyframes brShock {
   0% { opacity: 0.9; transform: scale(0.3); }
   100% { opacity: 0; transform: scale(32); border-width: 0.5px; }
@@ -403,8 +404,9 @@
   .br-sub { gap: 6px 10px; font-size: 12.5px; }
   .br-sub-braille { font-size: 15px; }
   .br-mode { display: grid; width: 100%; margin-top: 10px; }
-  .br-mode button { padding: 8px 4px; min-height: 46px; font-size: 12px; line-height: 1.2; white-space: normal; text-align: center; }
-  .br-mode sup { margin-left: 3px; }
+  .br-mode button { padding: 6px 3px; min-height: 46px; font-size: 11.5px; line-height: 1.2; white-space: normal; text-align: center; }
+  .br-mode button { flex-direction: column; justify-content: center; }
+  .br-mode sup { display: block; width: max-content; margin: 2px auto 0; } /* under the label: "Braille Anywhere AI" didn't fit a quarter of the row */
   .br-head-side { position: absolute; top: 14px; right: 14px; gap: 10px; }
   .br-stat b { font-size: 20px; }
   .br-stat span { font-size: 9px; letter-spacing: 0.1em; }
@@ -425,6 +427,13 @@
   .br-pad-actions { margin-left: 0; width: 100%; justify-content: center; }
 }
 /* Landscape phones: short screens, so the title and subtitle step aside. */
+/* Portrait phones: the title keeps clear of the Clear button in the corner (the
+   translation counter goes; "Braille Anywhere" ran into it). */
+@media (max-width: 599px), (max-width: 760px) and (orientation: portrait) {
+  .br-title, .br-sub-braille { margin-right: 86px; }
+  .br-title { font-size: clamp(24px, 7.6vw, 30px); }
+  .br-stat { display: none; }
+}
 @media (max-height: 520px) and (min-width: 600px) {
   .br-sub { display: none; }
   .br-head { flex-wrap: nowrap; align-items: flex-end; }

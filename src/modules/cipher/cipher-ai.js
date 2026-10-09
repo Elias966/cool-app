@@ -102,8 +102,9 @@ export function lessonPrompt(to = 'friend', { keyInside = false } = {}) {
       {
         role: 'system',
         content:
-          'You write short, fun notes between two friends who share secret codes. Keep it under 70 words. ' +
-          'Never write the code itself, never list letters or symbols, and never explain how ciphers work.',
+          'You write short, fun notes between two friends who share secret codes. Keep it under 50 words. ' +
+          'Never write the code itself, never list letters, numbers or symbols, and never explain how ciphers work. ' +
+          'Do not make up keys, passwords, clues, steps or instructions for reading the code: the real key is added after your note.',
       },
       { role: 'user', content: `${f.ask}${keyInside ? ' Tell them the key is written right below the note.' : ''} Make it ${pick(TONES)}.` },
     ],
@@ -111,8 +112,14 @@ export function lessonPrompt(to = 'friend', { keyInside = false } = {}) {
 }
 
 // Where a tiny model drifts out of the note into chatbot talk, or starts
-// inventing a code of its own.
+// inventing a code of its own. The note is cut at the start of that sentence.
 const DRIFT = [
+  /['‘"“][A-Za-z]['’"”]|['‘"“][A-Z]\b/, // a quoted letter: "key 'X'", "when you see 'Y'"
+  /["“][^"”\n]{2,60}["”]/, // a quoted phrase: encoded with "I love chocolate"
+  /\d/, // digits: "count the odd numbers (1359…)" (the prefilled line may have its own)
+  /\n\s*(\d+\\?[.)]|[-*•])\s/, // a list of steps
+  /\n\s*[_*\-•·#=~](\s*[_*\-•·#=~])*\s*(\n|$)/, // a line of _ _ or * * *
+  /\b(when you see|stands? for|encoded with|decode it by|the (secret )?(key|password) is)\b/i,
   /\n\s*#{1,6}\s/,
   /\n\s*-{3,}/,
   /\n\s*\*\*[^*\n]{2,40}:\*\*/,
@@ -126,8 +133,14 @@ export function finalizeNote(text, prefillLength = 0) {
   let out = text;
   for (const re of DRIFT) {
     const m = re.exec(out.slice(prefillLength));
-    if (m) out = out.slice(0, prefillLength + m.index);
+    if (!m) continue;
+    // Back up to the start of the sentence the drift is in.
+    const at = prefillLength + m.index;
+    const start = Math.max(prefillLength, ...['. ', '! ', '? ', '\n'].map((p) => out.lastIndexOf(p, at - 1) + p.length));
+    out = out.slice(0, at <= prefillLength ? prefillLength : start);
   }
+  // A sign-off left hanging ("Sincerely,") goes too.
+  out = out.replace(/\n[^\n.!?]{0,30},\s*$/, '');
   out = out
     .replace(/\*\*|__/g, '')
     .replace(/^\s*#{1,6}\s*/gm, '')

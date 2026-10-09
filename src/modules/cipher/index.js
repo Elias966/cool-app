@@ -1,10 +1,16 @@
 import {
-  THEMES, LETTERS, STYLES, styleById, keyFor, newCode, encodeWith, decodeWith, lessonFor, composeMessage, keyCardText, findKey, secretLine,
-  buildStyle, parseInline, messageFor, seededRand,
+  THEMES, LETTERS, styleById, keyFor, newCode, encodeWith, decodeWith, lessonFor, composeMessage, keyCardText, findKey, secretLine,
+  buildStyle, parseInline, messageFor, seededRand, PICKABLE,
 } from './cipher.js';
 import { AI_SPEC, AI_SIZE_MB, AI_LABEL, lessonPrompt, finalizeNote } from './cipher-ai.js';
+import { stripHidden } from '../../core/hidden.js';
+
+const segmenter = new Intl.Segmenter(undefined, { granularity: 'grapheme' });
+const graphemes = (text) => Array.from(segmenter.segment(text), (g) => g.segment);
 
 const HISTORY_KEY = 'history';
+// Styles that write the secret letter by letter in a key's alphabet.
+const LETTER_STYLES = ['letters', 'boxes', 'emojis'];
 const MAX_HISTORY = 40;
 const MAX_KEYS = 40;
 const SPINNER = '⣾⣽⣻⢿⡿⣟⣯⣷';
@@ -26,9 +32,9 @@ export default {
     let history = storage.get(HISTORY_KEY, []);
     if (!Array.isArray(history)) history = [];
     let mastery = storage.get('mastery', {});
-    // Message style for new messages: one of STYLES, or 'surprise' for a random one each time.
+    // Message style for new messages: one of PICKABLE, or 'surprise' for a random one each time.
     let styleChoice = storage.get('style', 'surprise');
-    if (styleChoice !== 'surprise' && !STYLES.some((st) => st.id === styleChoice)) styleChoice = 'surprise';
+    if (styleChoice !== 'surprise' && !PICKABLE.some((st) => st.id === styleChoice)) styleChoice = 'surprise';
     let pending = null; // the message card waiting for its secret
     let wheelCode = null;
 
@@ -120,7 +126,7 @@ export default {
             <button class="cp-mode" role="tab" data-mode="practice">Practice</button>
           </div>
           <div class="cp-stylepick" role="radiogroup" aria-label="Message style">
-            ${STYLES.map((st) => `<button role="radio" data-style="${st.id}" title="${st.name}: ${st.blurb}">${st.icon}</button>`).join('')}
+            ${PICKABLE.map((st) => `<button role="radio" data-style="${st.id}" title="${st.name}: ${st.blurb}">${st.icon}</button>`).join('')}
             <button role="radio" data-style="surprise" title="Surprise: a random style for every message">🎲</button>
             <span class="cp-stylename"></span>
           </div>
@@ -203,6 +209,7 @@ export default {
       const changed = code !== wheelCode;
       wheelCode = code;
       root.style.setProperty('--theme', key.theme.color);
+      root.classList.toggle('cp-wheel-colorful', Boolean(key.theme.colorful));
       scene.setAccent(key.theme.color);
       $('.cp-seal-icon').textContent = key.theme.icon;
       $('.cp-theme').innerHTML = `<b>${key.theme.icon}</b>${key.theme.name}`;
@@ -268,7 +275,7 @@ export default {
       box.innerHTML = keys
         .map((c) => {
           const k = keyFor(c);
-          return `<button class="cp-keychip${c === wheelCode ? ' on' : ''}" data-code="${c}" style="--c:${k.theme.color}" title="${k.theme.name}"><b>${k.theme.icon}</b>${c}</button>`;
+          return `<button class="cp-keychip${c === wheelCode ? ' on' : ''}${k.theme.colorful ? ' cp-colorful' : ''}" data-code="${c}" style="--c:${k.theme.color}" title="${k.theme.name}"><b>${k.theme.icon}</b>${c}</button>`;
         })
         .join('') || '<span class="cp-ring-empty">Forged and used keys collect here.</span>';
       $('.cp-ring-count').textContent = keys.length ? `${keys.length}` : '';
@@ -302,7 +309,8 @@ export default {
       c.height = H;
       const g = c.getContext('2d');
       const col = key.theme.color;
-      const symFont = getComputedStyle(root).getPropertyValue('--cfont').trim();
+      // Colour emoji alphabets (Color boxes, Emoji letters, Emoji): draw them with the emoji font, not the outline symbol fonts.
+      const symFont = key.theme.colorful ? "'Noto Color Emoji', 'Apple Color Emoji', 'Segoe UI Emoji', sans-serif" : getComputedStyle(root).getPropertyValue('--cfont').trim();
       await Promise.race([
         Promise.all(key.symbols.slice(0, 6).map((s) => document.fonts.load(`44px ${symFont}`, s).catch(() => {}))),
         new Promise((r) => setTimeout(r, 600)),
@@ -461,7 +469,7 @@ export default {
     function cardShell(entry, { animate }) {
       const key = keyFor(entry.code);
       const card = document.createElement('article');
-      card.className = `cp-card cp-style-${entry.style || 'clues'}`;
+      card.className = `cp-card cp-style-${entry.style || 'clues'}${key.theme.colorful ? ' cp-colorful' : ''}`;
       card.dataset.id = entry.id;
       card.style.setProperty('--c', key.theme.color);
       if (animate) card.classList.add('cp-card-new');
@@ -506,8 +514,9 @@ export default {
     async function forge(queued = '') {
       if (pending?._generating) return;
       if (pending) dropCard(pending);
-      const code = newCode();
-      const style = styleChoice === 'surprise' ? STYLES[Math.floor(Math.random() * STYLES.length)].id : styleChoice;
+      const style = styleChoice === 'surprise' ? PICKABLE[Math.floor(Math.random() * PICKABLE.length)].id : styleChoice;
+      // Color boxes / Emoji letters messages get a BOX- / EMO- key with that alphabet.
+      const code = newCode(undefined, { alphabet: style });
       const prompt = lessonPrompt(friend, { keyInside: styleById(style).keyInside });
       const entry = { id: Date.now() + Math.floor(Math.random() * 1000), mode: 'make', code, style, format: prompt.format, icon: prompt.icon, to: friend || 'friend', note: '', at: Date.now() };
       const spin = setCurrent(code, { forge: true });
@@ -544,6 +553,8 @@ export default {
         await job.done;
         cancelAnimationFrame(frame);
         note = finalizeNote(raw, prompt.prefill.length);
+        // Little left once made-up codes are cut: use the built-in ending instead.
+        if (note.length < prompt.prefill.length + 15) note = prompt.fallback;
         setAI('ready');
       } catch (err) {
         if (!alive) return;
@@ -580,10 +591,7 @@ export default {
       else Object.assign(entry, buildStyle(entry.style, key, secret, seededRand(entry.code)));
       pending = null;
       history.push(entry);
-      if (history.length > MAX_HISTORY) {
-        const dropped = history.splice(0, history.length - MAX_HISTORY);
-        dropped.forEach((d) => feed.querySelector(`.cp-card[data-id="${d.id}"]`)?.remove());
-      }
+      dropOldest();
       storage.set(HISTORY_KEY, history);
       renderSealed(card, { animate: true });
       input.value = '';
@@ -600,23 +608,35 @@ export default {
       );
     }
 
-    /** Fill in the clues, warm-up and the sealed secret. Animated: every letter runs through the wheel. */
     /** What the sealed line is made of, piece by piece, for the landing animation. */
     function sealUnits(entry, key) {
       const style = entry.style || 'clues';
-      if (style === 'clues' || style === 'letters') {
+      let units;
+      if (style === 'clues' || LETTER_STYLES.includes(style)) {
         const pool = Array.from(key.theme.symbols);
-        return encodeWith(key, entry.secret).tokens.map((t) =>
+        units = encodeWith(key, entry.secret).tokens.map((t) =>
           t.letter ? { start: t.src, final: t.out, pool, spoke: t.index, sym: true } : { final: t.out }
         );
+      } else {
+        // The invisible copy of the secret (if any) stays in the copied message, not on screen.
+        const line = stripHidden(entry.line);
+        if (style === 'words') {
+          const pool = entry.legend.map((p) => p.from);
+          units = line.split(/([\p{L}\p{N}'’]+)/u).filter(Boolean).map((seg) => (/^[\p{L}\p{N}'’]+$/u.test(seg) ? { start: seg, final: seg, pool, word: true } : { final: seg }));
+        } else if (style === 'numbers') {
+          units = graphemes(line).map((c) => (/^\d$/.test(c) ? { final: c, pool: Array.from('0123456789') } : { final: c }));
+        } else {
+          const pool = entry.legend.map((p) => p.from);
+          units = graphemes(line).map((c) => (pool.includes(c.replace(/\ufe0f/g, '')) ? { final: c, pool, emoji: true } : { final: c }));
+        }
       }
-      if (style === 'words') {
-        const pool = entry.legend.map((p) => p.from);
-        return entry.line.split(/([\p{L}\p{N}'’]+)/u).filter(Boolean).map((seg) => (/^[\p{L}\p{N}'’]+$/u.test(seg) ? { start: seg, final: seg, pool, word: true } : { final: seg }));
-      }
-      if (style === 'numbers') return Array.from(entry.line, (c) => (/\d/.test(c) ? { final: c, pool: Array.from('0123456789') } : { final: c }));
-      const pool = entry.legend.map((p) => p.from);
-      return Array.from(entry.line, (c) => (pool.includes(c) ? { final: c, pool, emoji: true } : { final: c }));
+      // Pieces that don't move are joined, so emoji sequences (👍🏽, ❤️) stay whole.
+      return units.reduce((out, u) => {
+        const last = out.at(-1);
+        if (!u.pool && last && !last.pool) last.final += u.final;
+        else out.push({ ...u });
+        return out;
+      }, []);
     }
 
     /** Fill in the lesson or legend and the sealed line. Animated: every piece flickers and lands. */
@@ -635,12 +655,13 @@ export default {
           (warmup ? `<span class="cp-lesson-label">✏️ Warm-up</span><span class="cp-warm"><b class="cp-sym">${warmup.symbols}</b><i>=</i>${warmup.word}</span>` : '');
       } else {
         const st = styleById(style);
-        const label = { letters: 'code', words: 'when I say … I mean', numbers: 'mapping', emoji: 'our secret language' }[style];
-        const from = (p) => (style === 'words' ? `‘${escapeHtml(p.from)}’` : `<b class="${style === 'letters' ? 'cp-sym' : ''}">${escapeHtml(style === 'letters' ? p.to : p.from)}</b>`);
-        const to = (p) => escapeHtml(style === 'letters' ? p.from : p.to);
+        const label = { letters: 'code', boxes: 'code', emojis: 'code', words: 'when I say … I mean', numbers: 'mapping', emoji: 'our secret language' }[style];
+        const letterCode = LETTER_STYLES.includes(style);
+        const from = (p) => (style === 'words' ? `‘${escapeHtml(p.from)}’` : `<b class="${letterCode ? 'cp-sym' : ''}">${escapeHtml(letterCode ? p.to : p.from)}</b>`);
+        const to = (p) => escapeHtml(letterCode ? p.from : p.to);
         // Letter code reads "A = ✦" like the message; the others read "code = meaning".
         lesson.innerHTML = `<span class="cp-lesson-label">${st.icon} ${label}</span>${entry.legend
-          .map((p, i) => (style === 'letters'
+          .map((p, i) => (letterCode
             ? `<span class="cp-clue" style="--i:${i}">${to(p)}<i>=</i>${from(p)}</span>`
             : `<span class="cp-clue cp-clue-${style}" style="--i:${i}">${from(p)}<i>=</i>${to(p)}</span>`))
           .join('')}`;
@@ -721,7 +742,7 @@ export default {
       const res = inline ? { text: entry.src } : decodeWith(key, entry.src);
       const secret = inline ? inline.secret : decodeWith(key, secretLine(entry.src)).text.trim();
       const card = document.createElement('article');
-      card.className = 'cp-card cp-card-read';
+      card.className = `cp-card cp-card-read${key.theme.colorful || ['boxes', 'emojis'].includes(inline?.style) ? ' cp-colorful' : ''}`;
       card.dataset.id = entry.id;
       card.style.setProperty('--c', key.theme.color);
       if (animate) card.classList.add('cp-card-new');
@@ -756,12 +777,18 @@ export default {
       return card;
     }
 
+    /** Keep the history at MAX_HISTORY: the oldest entries and their cards go. */
+    function dropOldest() {
+      if (history.length <= MAX_HISTORY) return;
+      history.splice(0, history.length - MAX_HISTORY).forEach((d) => feed.querySelector(`.cp-card[data-id="${d.id}"]`)?.remove());
+    }
+
     function read(text) {
       const inline = parseInline(text);
       if (inline) {
         const entry = { id: Date.now() + Math.floor(Math.random() * 1000), mode: 'read', src: text, inline: inline.style, code: wheelCode, at: Date.now() };
         history.push(entry);
-        if (history.length > MAX_HISTORY) history.splice(0, history.length - MAX_HISTORY);
+        dropOldest();
         storage.set(HISTORY_KEY, history);
         addReadCard(entry, { animate: true });
         refreshMeta();
@@ -783,7 +810,7 @@ export default {
       const entry = { id: Date.now() + Math.floor(Math.random() * 1000), mode: 'read', src: text, code: found.key.code, how: found.how, at: Date.now() };
       remember(found.key.code);
       history.push(entry);
-      if (history.length > MAX_HISTORY) history.splice(0, history.length - MAX_HISTORY);
+      dropOldest();
       storage.set(HISTORY_KEY, history);
       addReadCard(entry, { animate: true });
       refreshMeta();
@@ -967,7 +994,7 @@ export default {
           const key = keyFor(entry.code);
           const enc = encodeWith(key, value);
           // the same seeded shuffle as sealing, so the preview is exactly what gets sent
-          const styled = entry.style === 'clues' || entry.style === 'letters' ? null : buildStyle(entry.style, key, value, seededRand(entry.code));
+          const styled = entry.style === 'clues' || LETTER_STYLES.includes(entry.style) ? null : buildStyle(entry.style, key, value, seededRand(entry.code));
           liveText.textContent = styled ? styled.line : enc.text;
           lightWheel(styled ? new Set() : new Set(enc.tokens.filter((t) => t.letter).map((t) => t.index)));
           counter.textContent = `${Array.from(value).length} chars · ${styleById(entry.style).name}${styled ? '' : ` · ${key.theme.name}`}`;
@@ -1148,7 +1175,8 @@ export default {
           ['🔤 code: A=X', 'code: A=X, B=Y, C=Z. ZXY'],
           ['🍎 When I say…', "cipher. When I say 'apple' I mean 'cool'. When I say 'banana' I mean 'moon'. Now: apple banana moon"],
           ['🔢 mapping: 1=y', 'mapping: 1=y, 2=i, 3=V, 4=l, 5=L.  1-2-3-2-4-5'],
-          ['🟢 secret language', 'Our secret language: 🔴=hide, 🔵=me, 🟢=moon, 🟡=out. 🔴🔵🟢🟡'],
+          ['🟥 code: H=🟥', 'code: H=🟥, I=🟦, D=🟢, E=🟡. 🟥🟦🟢🟡 🟥🟦🟥🟦'],
+          ['😀 code: H=🍕', 'code: H=🍕, I=🦊, Y=🚀. 🍕🦊 🍕🦊🚀'],
         ];
         for (const [label, text] of demos) {
           const b = Object.assign(document.createElement('button'), { className: 'cp-chip', textContent: label, title: text });

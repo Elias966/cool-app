@@ -47,6 +47,7 @@ export PATH="$PWD/.tools/node/bin:$PATH"
 npm start          # run the app
 npm run dist       # build dist/Prism-<version>-x86_64.AppImage
 npm run android    # build the Android APK (needs the Android SDK; see android version/README.md)
+npm run check -- <module|all>   # test a module on desktop, phones and tablets (tests/check/README.md)
 ```
 
 Shortcuts: `F12` / `Ctrl+Shift+I` open DevTools, `Ctrl+R` reloads, `Esc` returns to Home.
@@ -68,6 +69,7 @@ src/modules/<id>/       built-in modules
 build/                  icon + AppImage launcher hook
 android version/        the Android app: WebView shell that runs the same src/
 scripts/                vendor.js (copies three.js into src/vendor), android.js (Android web assets)
+tests/check/            npm run check: static rules, round trips, desktop + phone/tablet runs
 tests/mobile/           Playwright checks at phone and tablet sizes
 release-notes/          text for each GitHub release
 .github/workflows/      builds and publishes the AppImage and APK
@@ -165,8 +167,9 @@ breakpoints, and the desktop layout stays untouched:
 
 `body.handheld` is set on touch devices (hide keyboard-only hints under it) and
 `body.platform-android` inside the app. Text inputs need a font size of at
-least 16px on phones. `tests/mobile/` has Playwright scripts that screenshot
-every module at phone and tablet sizes.
+least 16px on phones. `npm run check -- <module>` runs a module on desktop
+and on phone and tablet sizes and reports layout, errors and leaks
+(`tests/check/README.md`).
 
 ## Text to Braille
 
@@ -382,14 +385,23 @@ mark for a capital or an accent, which tells nothing about the letter itself.
   app and never use letters of the secret. Without the AI, a built-in note is
   used.
 - **Message styles:** 🔑 *Clues* (the key is sent separately, the most
-  private), or one of four styles that put the key inside the message so your
-  friend can read it straight away (🔤 letter code, 🍎 word swap, 🔢 number map,
-  🟢 emoji words). 🎲 *Surprise* picks one for each message.
+  private), or a style that puts the key inside the message so your friend can
+  read it straight away: 🔤 *Letter code* (`code: A=✦, B=✧`), 🟥 *Color boxes*
+  (every letter is a coloured box: 🟥🟦🟢💛…), 😀 *Emoji letters* (every letter
+  is an emoji: 🍕🦊🚀…), 🍎 *Word swap* and 🔢 *Number map*. 🎲 *Surprise* picks
+  one for each message. Color boxes and Emoji letters messages get their own
+  key (codes starting with `BOX-` / `EMO-`), so the key card, the wheel,
+  Practice and Read all use those boxes or emoji. Older 🟢 *Emoji words*
+  messages (one emoji per word) still read back.
+- Emoji, capitals and accents in a secret come back exactly, also with emoji
+  alphabets (a 🍕 you type stays a 🍕).
 - **Read:** paste a message; Prism finds the key in your key ring, or uses the
   code your friend gave you.
 - **Practice:** flashcards for learning an alphabet by heart, with a streak and
   per-symbol progress.
-- Key cards can be copied as an image, saved as PNG or copied as text.
+- Key cards (the whole alphabet of a key, in its own boxes, emoji or symbols)
+  can be copied as an image, saved as PNG or copied as text; on Android they
+  open the share sheet.
 
 ## Sound
 

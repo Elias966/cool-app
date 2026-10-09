@@ -86,7 +86,8 @@ export function fromDingbats(raw, fontId = 'auto') {
   const best = [...scores].sort((a, b) => b.hits - a.hits)[0];
   // An invisible copy of the original (core/hidden.js) settles the text and the font
   // when carving it again gives exactly these symbols.
-  const fits = (id) => original !== null && stripHidden(toDingbats(original, id).text) === clean;
+  // (compared with the selectors still in: ❤️ keeps its U+FE0F)
+  const fits = (id) => original !== null && stripHidden(toDingbats(original, id).text) === input;
   const exactFont = fontId === 'auto' ? [best.id, ...FONTS.map((f) => f.id)].find(fits) : fits(fontId) ? fontId : undefined;
   const font = exactFont ?? (fontId === 'auto' ? best.id : fontId);
   const tokens = Array.from(clean, (c) => {

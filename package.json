@@ -13,7 +13,8 @@
     "predist": "node scripts/vendor.js",
     "dist": "electron-builder --linux AppImage",
     "android:web": "node scripts/android.js",
-    "android": "npm run android:web && cd \"android version\" && ./gradlew assembleRelease"
+    "android": "npm run android:web && cd \"android version\" && ./gradlew assembleRelease",
+    "check": "node scripts/android.js && electron tests/check/run.js"
   },
   "build": {
     "appId": "com.theking.prism",

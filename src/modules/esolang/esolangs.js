@@ -343,6 +343,8 @@ function bfgNumber(n) {
   for (let q = 2; q <= 9; q++) for (let r = q; r <= 9; r++) for (let s = 1; s <= 9; s++) if (q * r + s === n) return `${q}${r}*${s}+`;
   for (let q = 2; q <= 9; q++) for (let r = 2; r <= 9; r++) for (let t = 2; t <= 9; t++) for (let s = 0; s <= 9; s++) {
     if (q * r * t + s === n) return `${q}${r}*${t}*${s ? `${s}+` : ''}`;
+    // a few bytes (239, from the ❤️ selector, among them) need a subtraction
+    if (q * r * t - s === n) return `${q}${r}*${t}*${s}-`;
   }
   throw new Error(`Cannot build ${n}`);
 }
