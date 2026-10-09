@@ -7,7 +7,7 @@ user-facing description, this file is for whoever works on the code next.
 
 **Prism** is a modular Electron desktop app, shipped as a Linux AppImage. A
 three.js 3D background plus a shell (dock, home launcher, page transitions)
-hosts **modules**: self-contained pages discovered at startup. Six modules
+hosts **modules**: self-contained pages discovered at startup. Seven modules
 exist, each translating text both ways with heavy visual effects.
 
 - Project: `/home/theking/cool-app` (not a git repo yet)
@@ -56,7 +56,7 @@ build/icon.png         app icon (generated with Python, 512 px)
   whose default export is `{ mount(root, ctx) }`; `mount` returns a cleanup
   function. `ctx` = `{ meta, scene, fx, toast, ai, storage, navigate, url }`.
   `storage` is namespaced localStorage per module. Prefix module CSS classes
-  (`br-`, `b64-`, `dg-`, `an-`, `es-`, `ly-`).
+  (`br-`, `b64-`, `dg-`, `an-`, `es-`, `ly-`, `jp-`).
 - Each module follows the same page pattern: canvas intro effect, header,
   live preview, history feed of cards (saved in `ctx.storage`, max ~40), a
   console with textarea + send button, a mode switch, and a Clear button that
@@ -72,6 +72,7 @@ build/icon.png         app icon (generated with Python, 512 px)
 | Ancient Scripts | `ancient/` | encode, decode (mixed scripts) | `scripts.js` |
 | Esoteric Languages | `esolang/` | text→program, program→text (runs it) | `esolangs.js` |
 | Layered Encoding | `layers/` | text→layers, layers→text (Auto-peel or My chain) | `layers.js` |
+| Japanese Scripts | `japanese/` | text→日本語 (5 styles), 日本語→text (style auto-detect, romaji) | `japanese.js` |
 
 Notes per module:
 
@@ -116,6 +117,24 @@ Notes per module:
   ~98.5% auto-peel; misses are inherently ambiguous (reversed CJK, 2–3 letter
   messages). Intermediate strings are capped at 400k chars (Binary is 9x per
   layer).
+- **Japanese Scripts:** five styles. *Katakana*: English → loanword katakana
+  (`WORDS` dictionary of ~280 real loanwords, then spelling rules in
+  `englishToPseudo()`; rule order matters, see the comments); decodes known
+  words back to English, the rest to romaji, so it is approximate. *Hiragana*:
+  letter cipher (uppercase → katakana, digits → 〇一二…). *Romaji mix*: romaji
+  syllables → kana, other letters stay Latin, Capitalised words in katakana;
+  each word is kept only if it reads back exactly. *Hankaku*: halfwidth
+  katakana cipher. *Kanji-look*: look-alike kanji (case not kept). Decoding
+  auto-detects the style (`detectStyle()`); clicking a style forces it, as in
+  Dingbats. Real kana is transliterated with Hepburn (`kanaToRomaji()`), with
+  spaces at script changes. Furigana (`<ruby>`) and vertical (tategaki)
+  toggles. Fonts: `japanese/fonts/` holds Noto Sans JP 400/700 and Noto Serif
+  JP 900 cut down to 458 characters (kana, halfwidth forms, CJK punctuation,
+  the Kanji-look glyphs, kanji digits and the UI kanji 日本語文字混書漢風縦横印桜),
+  about 80 KB each. They were built from the `@fontsource/noto-sans-jp` /
+  `noto-serif-jp` 5.3.0 npm packages: fontTools subset of each `*-400/700/900`
+  woff2 piece, merged with `fontTools.merge`. Any new kanji in the UI must be
+  added the same way, or it falls back to a system font.
 
 ## Packaging details (each one fixed a real problem)
 

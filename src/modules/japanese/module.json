@@ -1,0 +1,10 @@
+{
+  "id": "japanese",
+  "name": "Japanese Scripts",
+  "description": "Write anything in katakana, hiragana, halfwidth code-rain or look-alike kanji, mixed with Latin if you like, and read any kana back as romaji.",
+  "icon": "icon.svg",
+  "accent": "#ff3b5c",
+  "entry": "index.js",
+  "style": "style.css",
+  "order": 70
+}
