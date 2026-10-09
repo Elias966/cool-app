@@ -317,6 +317,11 @@
 }
 .handheld .b64-hint { display: none; }
 
+/* Narrow screens (tablets in portrait too): a little more room for the console bar. */
+@media (max-width: 1000px) and (hover: none), (max-width: 760px), (max-height: 520px) and (min-width: 600px) {
+  .b64 { padding-inline: 24px; }
+  .b64-bar { gap: 8px; }
+}
 /* Phones (portrait and landscape): one bit/sextet group at a time in a swipeable strip. */
 @media (max-width: 599px), (max-width: 760px) and (orientation: portrait), (max-height: 520px) and (min-width: 600px) {
   .b64 { gap: 8px; padding: 10px 14px; overflow: hidden auto; }

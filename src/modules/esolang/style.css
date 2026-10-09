@@ -278,3 +278,79 @@
   .es-main { grid-template-columns: minmax(0, 1fr); }
   .es-side .es-about { display: none; }
 }
+
+/* ------------------------------------------------- phones and tablets */
+/* Touch: tabs, machine controls, chips and the direction switch get finger-sized; keyboard hints go. */
+@media (pointer: coarse) {
+  .es-tab, .es-chip { min-height: 38px; }
+  .es-btn { min-height: 34px; padding: 6px 10px; }
+  .es-mode { min-height: 34px; padding: 6px 12px; }
+}
+.handheld .es-hint { display: none; }
+
+/* Phones (portrait and landscape): the module stays put (scanlines and boot screen cover it),
+   the head and console are fixed and the panels between them scroll. */
+@media (max-width: 599px), (max-width: 760px) and (orientation: portrait), (max-height: 520px) and (min-width: 600px) {
+  .es { gap: 10px; padding: 10px 14px; overflow: clip; }
+  .es-boot pre { min-width: 0; max-width: 100%; padding: 0 16px; font-size: 11px; white-space: pre-wrap; }
+  .es-badge { display: none; } /* the title bar already says where you are */
+  .es-head { flex-direction: column; align-items: stretch; flex-wrap: nowrap; gap: 8px; }
+  .es-title { margin: 0; font-size: 26px; }
+  .es-tabs {
+    flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; scroll-snap-type: x proximity; overscroll-behavior-x: contain;
+    margin-inline: -14px; padding: 2px 14px 4px; scroll-padding-inline: 14px;
+  }
+  .es-tabs::-webkit-scrollbar { display: none; }
+  .es-tab { flex: none; scroll-snap-align: start; }
+  .es-side .es-about { display: block; }
+  .es-panel-head { padding: 7px 10px; }
+  .es-code-wrap { padding: 10px 12px; }
+  .es-code { font-size: 13px; }
+  .es-view { min-height: 0; padding: 10px 10px 4px; }
+  .es-tape { gap: 3px; }
+  .es-cell b { font-size: 13px; }
+  .es-term { margin: 8px 10px 6px; min-height: 56px; font-size: 14px; }
+  .es-card-head { flex-direction: column; gap: 4px; }
+  .es-card-src { max-width: 100%; }
+  .es-card-actions [data-act='delete'] { margin-left: 0; }
+  .es-console { gap: 8px 10px; padding: 8px 10px 10px 14px; }
+  .es-prompt { line-height: 46px; }
+  .es-input { min-width: 0; min-height: 46px; font-size: 16px; }
+  .es-send { height: 46px; padding: 0 13px; font-size: 12.5px; }
+  .es-machine .es-file { font-size: 0; } /* just the three dots, so the controls fit beside them */
+  .es-machine .es-file::before { font-size: 11.5px; }
+}
+/* Portrait phones: program, machine, history and notes stack in one scroller. */
+@media (max-width: 599px), (max-width: 760px) and (orientation: portrait) {
+  .es-main { display: flex; flex-direction: column; gap: 10px; overflow: hidden auto; overscroll-behavior: contain; margin-inline: -4px; padding-inline: 4px; }
+  .es-left, .es-side { display: contents; }
+  .es-main > * > * { flex: none; }
+  .es-program { order: 1; max-height: none; min-height: 0; }
+  .es-code-wrap { max-height: clamp(96px, 22svh, 220px); }
+  .es-machine { order: 2; }
+  .es-feed { order: 3; height: clamp(230px, 46svh, 480px); }
+  .es-about { order: 4; overflow: visible; }
+  .es-bar { gap: 8px; }
+  .es-mode { padding: 6px 9px; }
+}
+/* Landscape phones: title beside the tabs, program and history on the left, machine on the right,
+   and the console in a single row. */
+@media (max-height: 520px) and (min-width: 600px) {
+  .es { gap: 8px; padding: 8px 14px; }
+  .es-head { flex-direction: row; align-items: center; gap: 14px; }
+  .es-title { flex: none; font-size: 20px; }
+  .es-tabs { flex: 1 1 auto; min-width: 0; margin-inline: 0 -14px; padding-left: 2px; }
+  .es-main { grid-template-columns: minmax(0, 1fr) 300px; gap: 10px; }
+  .es-left, .es-side { overflow: hidden auto; overscroll-behavior: contain; gap: 10px; }
+  .es-program { max-height: none; min-height: 0; flex: none; }
+  .es-code-wrap { max-height: 120px; }
+  .es-feed { flex: 1 0 170px; }
+  .es-machine, .es-side .es-about { flex: none; overflow: visible; }
+  .es-console { flex-wrap: nowrap; align-items: center; padding: 6px 10px 6px 14px; }
+  .es-bar { flex: none; flex-basis: auto; }
+  .es-clear { margin-left: 0; }
+}
+/* The keyboard is open: keep the program, the scroller and the text box, drop the head. */
+@media (max-width: 760px) and (orientation: portrait) and (max-height: 560px) {
+  .es-head { display: none; }
+}

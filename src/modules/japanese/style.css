@@ -383,6 +383,7 @@
   .jp-card { padding: 13px 14px 11px; border-radius: 18px; }
   .jp-card-head { flex-direction: column; gap: 4px; }
   .jp-out { font-size: 21px; }
+  .jp-vertical .jp-out { max-width: 100%; } /* tategaki scrolls sideways inside the card */
   .jp-scroll-text { font-size: 22px; }
   .jp-console { padding: 10px 12px 10px 16px; border-radius: 20px; }
   .jp-input { font-size: 16px; }
@@ -394,6 +395,8 @@
 /* Tablets and landscape phones are wide enough for styles and chart side by side. */
 @media (min-width: 600px) and (max-width: 1000px) and (hover: none), (min-width: 600px) and (max-width: 760px), (max-height: 520px) and (min-width: 600px) {
   .jp-side { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: start; }
+  .jp-emblem { zoom: 0.7; }
+  .jp-title { font-size: 38px; }
 }
 /* Portrait phones: the direction switch gets a row of its own. */
 @media (max-width: 599px), (max-width: 760px) and (orientation: portrait) {
@@ -413,6 +416,8 @@
   .jp-title { font-size: 24px; margin: 0; }
   .jp-emblem { zoom: 0.3; }
   .jp-feed { height: clamp(160px, 100svh - 230px, 400px); }
+  .jp-empty { padding: 4px 0 0; gap: 8px; }
+  .jp-empty p { font-size: 13.5px; }
 }
 /* The keyboard is open: keep the feed and the text box, drop the rest. */
 @media (max-width: 760px) and (orientation: portrait) and (max-height: 560px) {

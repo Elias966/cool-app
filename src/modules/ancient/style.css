@@ -316,7 +316,7 @@
    tablet, the history and the console (the root is a size container, so the
    history fills what is left); Rosetta, glyph and script notes follow below. */
 @media (max-width: 1000px) and (hover: none), (max-width: 760px), (max-height: 520px) and (min-width: 600px) {
-  .an { --an-chrome: 520px; gap: 12px; padding: 12px 16px 16px; overflow: hidden auto; overscroll-behavior: contain; container-type: size; }
+  .an { --an-chrome: 410px; gap: 12px; padding: 12px 16px 16px; overflow: hidden auto; overscroll-behavior: contain; container-type: size; }
   .an > * { flex: none; }
   .an-main, .an-left { display: contents; }
   .an-head { order: 0; }
@@ -341,7 +341,7 @@
   .an-tablet { min-height: 104px; max-height: 150px; padding: 26px 16px 14px; }
   .an-carving { font-size: 28px; }
   .an-reading { margin-top: 8px; padding-top: 6px; font-size: 17px; }
-  .an-feed { height: clamp(160px, 100cqh - var(--an-chrome), 640px); padding: 12px 2px 10px; }
+  .an-feed { flex: none; height: clamp(160px, 100cqh - var(--an-chrome), 640px); padding: 12px 2px 10px; }
   .an-card-stone { padding: 16px 16px 12px; }
   .an-card-text { font-size: 26px; }
   .an-card-plaque { margin: 0 6px; padding: 10px 12px; }
@@ -355,18 +355,20 @@
   .an-about { overflow: visible; }
   .an-row { grid-template-columns: 96px minmax(0, 1fr); }
 }
-/* Portrait phones: a narrower bar (the counter goes, Clear moves right). */
+/* Portrait phones: a narrower bar. The counter goes, Clear moves right and the
+   Boustrophedon toggle (Greek only) takes its own row. */
 @media (max-width: 599px), (max-width: 760px) and (orientation: portrait) {
-  .an { --an-chrome: 488px; }
+  .an { --an-chrome: 380px; }
   .an-counter { display: none; }
   .an-clear { margin-left: auto; }
   .an-mode { padding: 5px 9px; }
+  .an-bous { order: 1; }
 }
 /* Landscape phones: two columns. History over the console on the left (one
    screen tall); seals, live tablet and the side panels scroll on the right. */
 @media (max-height: 520px) and (min-width: 600px) {
   .an {
-    --an-chrome: 172px; padding: 8px 16px 12px;
+    --an-chrome: 136px; padding: 8px 16px 12px;
     display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); grid-template-rows: auto auto 1fr; align-content: start; gap: 10px 14px;
   }
   .an-feed { grid-area: 1 / 1; height: max(130px, 100cqh - var(--an-chrome)); }
@@ -380,6 +382,8 @@
   .an-seal-coin.f-ogham { font-size: 32px; }
   .an-counter { display: none; }
   .an-clear { margin-left: auto; }
+  .an-mode { padding: 5px 9px; }
+  .an-bous { order: 1; }
 }
 /* The keyboard is open: keep the live tablet, history and text box. */
 @media (max-width: 760px) and (orientation: portrait) and (max-height: 560px) {

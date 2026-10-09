@@ -518,7 +518,7 @@
   .cp-wheel-wrap { grid-row: span 3; }
   .cp-keyring { max-height: 140px; }
   .cp:not(.cp-ready) :is(.cp-vault, .cp-stage) { opacity: 0; }
-  .cp-feed, .cp-practice { flex: none; height: max(250px, calc(100cqh - var(--cp-rest))); }
+  .cp-feed, .cp-practice { flex: none; height: max(var(--cp-min, 250px), calc(100cqh - var(--cp-rest) - var(--cp-ai, 0px))); }
   .cp-input { font-size: 16px; }
   .cp-field input { font-size: 16px; }
   .cp-field-key input { width: 200px; }
@@ -528,10 +528,10 @@
 }
 
 @media (max-width: 599px), (max-width: 760px) and (orientation: portrait) {
-  .cp { --cp-rest: 356px; gap: 10px; padding: 12px 14px 16px; }
-  .cp[data-mode='read'] { --cp-rest: 310px; }
-  .cp[data-mode='practice'] { --cp-rest: 248px; }
-  .cp:has(.cp-ai:not([data-state='idle'], [data-state='ready'], [data-state='offline'])) { --cp-rest: 400px; }
+  .cp { --cp-rest: 335px; gap: 10px; padding: 12px 14px 16px; }
+  .cp[data-mode='read'] { --cp-rest: 343px; }
+  .cp[data-mode='practice'] { --cp-rest: 255px; }
+  .cp:has(.cp-ai:not([data-state='idle'], [data-state='ready'], [data-state='offline'])) { --cp-ai: 60px; }
   .cp-badge { display: none; } /* the title bar already says where you are */
   .cp-title { margin: 2px 0 3px; font-size: 28px; }
   .cp-sub { font-size: 12.5px; line-height: 1.4; }
@@ -576,18 +576,28 @@
   .cp-live { font-size: 16px; }
   .cp-inputrow { gap: 10px; }
   .cp-input { min-height: 44px; max-height: 110px; padding: 10px 2px; }
-  .cp-send { height: 46px; padding: 0 16px; gap: 8px; font-size: 14px; }
+  .cp-send { width: 52px; height: 48px; padding: 0; justify-content: center; }
+  .cp-send span { display: none; } /* icon only: ✦ forge, 🔒 seal, 🔓 decrypt, ↻ skip */
+  .cp-send b { font-size: 19px; }
   .cp-bar { gap: 8px; margin-top: 6px; }
   .cp-modes { display: flex; flex: 1 1 auto; order: 1; }
   .cp-mode { flex: 1; }
   .cp-bar .cp-clear { order: 2; }
-  .cp[data-mode='make'] .cp-stylepick { display: flex; flex: 1 1 100%; order: 3; }
+  .cp[data-mode='make'] .cp-stylepick { display: flex; flex: 1 1 100%; order: 3; min-width: 0; }
   .cp-stylepick button { flex: none; width: 36px; }
   .cp-stylename { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
   .cp-field { flex: 1 1 100%; order: 4; min-width: 0; }
   .cp-field input, .cp-field-key input { flex: 1; width: 0; min-width: 0; }
   .cp-counter { flex: 1 1 100%; order: 5; margin: -2px 0 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
   .cp-counter:empty { display: none; }
+}
+/* Short portrait phones: the subtitle and the idle console line go. */
+@media (max-width: 760px) and (orientation: portrait) and (max-height: 720px) {
+  .cp { --cp-rest: 268px; --cp-min: 180px; }
+  .cp[data-mode='read'] { --cp-rest: 276px; }
+  .cp[data-mode='practice'] { --cp-rest: 188px; }
+  .cp-sub { display: none; }
+  .cp-live.idle { display: none; }
 }
 /* Landscape phones: short screens, so the head shrinks to one line. */
 @media (max-height: 520px) and (min-width: 600px) {
@@ -616,8 +626,10 @@
 }
 /* The keyboard is open: keep the feed (or practice card) and the console. */
 @media (max-width: 760px) and (orientation: portrait) and (max-height: 560px) {
-  .cp { --cp-rest: 190px; }
-  .cp-head { display: none; }
+  .cp, .cp[data-mode='read'] { --cp-rest: 232px; }
+  .cp[data-mode='practice'] { --cp-rest: 150px; }
+  .cp-feed, .cp-practice { height: max(120px, calc(100cqh - var(--cp-rest))); } /* the head (and its AI row) is hidden */
+  .cp-head, .cp-live.idle, .cp[data-mode='make'] .cp-stylepick { display: none; }
   .cp-practice { grid-template-columns: 112px minmax(0, 1fr); grid-template-rows: auto; }
   .cp-flip { width: 112px; height: 146px; }
   .cp-face b { font-size: 58px; }

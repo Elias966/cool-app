@@ -459,6 +459,9 @@
 /* Tablets and landscape phones are wide enough for chain and palette side by side. */
 @media (min-width: 600px) and (max-width: 1000px) and (hover: none), (min-width: 600px) and (max-width: 760px), (max-height: 520px) and (min-width: 600px) {
   .ly-side { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: start; }
+  .ly-tower-wrap { width: 120px; height: 100px; }
+  .ly-tower { scale: 0.8; }
+  .ly-title { font-size: 38px; }
 }
 /* Landscape phones: a one-line head and a feed that leaves room for the console. */
 @media (max-height: 520px) and (min-width: 600px) {
@@ -469,6 +472,8 @@
   .ly-gauge-num b { font-size: 24px; }
   .ly-gauge-num span, .ly-gauge-num em { margin: 0; }
   .ly-feed { height: clamp(160px, 100svh - 230px, 400px); }
+  .ly-empty { padding: 4px 0 0; gap: 8px; }
+  .ly-empty p { font-size: 13.5px; }
 }
 /* The keyboard is open: keep the feed and the text box, drop the rest. */
 @media (max-width: 760px) and (orientation: portrait) and (max-height: 560px) {
