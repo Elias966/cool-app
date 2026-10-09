@@ -1,0 +1,10 @@
+{
+  "id": "layers",
+  "name": "Layered Encoding",
+  "description": "Stack encoders on the same string: Base64, then ROT13, then reverse. Order and depth are everything. Build a chain, then peel it back off.",
+  "icon": "icon.svg",
+  "accent": "#ff4fd8",
+  "entry": "index.js",
+  "style": "style.css",
+  "order": 60
+}

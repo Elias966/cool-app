@@ -5,7 +5,8 @@ three.js and packaged as an AppImage. Every page is a **module**: a
 self-contained folder the shell finds when it starts. Nothing in the shell is
 tied to one feature.
 
-It ships with four modules: **Text to Braille**, **Text to Base64**, **Text to Dingbats** and **Ancient Scripts**.
+It ships with six modules: **Text to Braille**, **Text to Base64**, **Text to Dingbats**, **Ancient Scripts**,
+**Esoteric Languages** and **Layered Encoding**.
 
 ## Run the AppImage
 

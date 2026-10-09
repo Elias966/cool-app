@@ -7,7 +7,7 @@ user-facing description, this file is for whoever works on the code next.
 
 **Prism** is a modular Electron desktop app, shipped as a Linux AppImage. A
 three.js 3D background plus a shell (dock, home launcher, page transitions)
-hosts **modules**: self-contained pages discovered at startup. Five modules
+hosts **modules**: self-contained pages discovered at startup. Six modules
 exist, each translating text both ways with heavy visual effects.
 
 - Project: `/home/theking/cool-app` (not a git repo yet)
@@ -56,7 +56,7 @@ build/icon.png         app icon (generated with Python, 512 px)
   whose default export is `{ mount(root, ctx) }`; `mount` returns a cleanup
   function. `ctx` = `{ meta, scene, fx, toast, ai, storage, navigate, url }`.
   `storage` is namespaced localStorage per module. Prefix module CSS classes
-  (`br-`, `b64-`, `dg-`, `an-`, `es-`).
+  (`br-`, `b64-`, `dg-`, `an-`, `es-`, `ly-`).
 - Each module follows the same page pattern: canvas intro effect, header,
   live preview, history feed of cards (saved in `ctx.storage`, max ~40), a
   console with textarea + send button, a mode switch, and a Clear button that
@@ -71,6 +71,7 @@ build/icon.png         app icon (generated with Python, 512 px)
 | Text to Dingbats | `dingbats/` | encode, decode (font auto-detect) | `dingbats.js`, `maps.js` |
 | Ancient Scripts | `ancient/` | encode, decode (mixed scripts) | `scripts.js` |
 | Esoteric Languages | `esolang/` | text→program, program→text (runs it) | `esolangs.js` |
+| Layered Encoding | `layers/` | text→layers, layers→text (Auto-peel or My chain) | `layers.js` |
 
 Notes per module:
 
@@ -102,6 +103,19 @@ Notes per module:
   was validated against the published "Hello, world." program. Malbolge
   generation is straight-line (no jumps) and can only reach 201 of 256 byte
   values, so non-ASCII text is reduced to ASCII with an on-screen note.
+- **Layered Encoding:** encoding chains (a.k.a. String Compositions /
+  Mixture-of-Encodings): up to 8 invertible layers stacked on one string, in
+  any order. 13 layers: Base64, Base32, Ascii85, Hex, Binary, Percent, HTML
+  entities, Unicode escapes, ROT13, ROT47, Atbash, Reverse, Fullwidth
+  (Fullwidth swaps ASCII and wide forms both ways, so it is its own inverse).
+  Chain built in the side panel (click tiles, drag or ↑↓ to reorder, presets,
+  Shuffle = random order and depth). Decoding: *My chain* undoes the current
+  chain exactly; *Auto-peel* is a beam search over decodings scored by
+  `readability()` (format decodes earn a bonus, blind cipher steps cost, at
+  most 4 ciphers in a row). Random chains of depth 1–5: 100% exact round trip,
+  ~98.5% auto-peel; misses are inherently ambiguous (reversed CJK, 2–3 letter
+  messages). Intermediate strings are capped at 400k chars (Binary is 9x per
+  layer).
 
 ## Packaging details (each one fixed a real problem)
 
