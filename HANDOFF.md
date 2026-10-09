@@ -155,6 +155,16 @@ Notes per module:
   (SVG table dropped, so it is a monochrome fallback; systems with a colour
   emoji font use that). Changing a theme's symbol list changes the alphabet of
   every existing code, so old messages would no longer decode.
+  Message styles (picker in the Make bar, `STYLES` in `cipher.js`): 🔑 Clues
+  (key sent separately, the most private), and four key-inside styles taken
+  from the user's own examples: 🔤 Letter code (`code: A=✦, B=✧.` + symbols),
+  🍎 Word swap (`When I say 'apple' I mean 'cool'. … Now: apple`), 🔢 Number
+  map (`mapping: 1=y, 2=i.  1-2-3`), 🟢 Emoji words (`Our secret language:
+  🔴=hide. 🔴🔵`). 🎲 Surprise (default) picks one per message. Key-inside
+  messages can be read by anyone who sees them; cards say so (yellow tag).
+  `buildStyle()` makes them with a generator seeded by the key code, so the
+  live preview matches the sealed result; `parseInline()` reads them back,
+  also when typed by hand, and Read mode tries it before the key ring.
 
 ## Packaging details (each one fixed a real problem)
 

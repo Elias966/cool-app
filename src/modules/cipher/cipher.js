@@ -85,6 +85,9 @@ function mulberry32(seed) {
   };
 }
 
+/** A repeatable random generator for a piece of text (same text → same numbers). */
+export const seededRand = (text) => mulberry32(seedOf(`cipher-pact:${text}`));
+
 const cache = new Map();
 
 /**
@@ -229,3 +232,156 @@ export function findKey(text, codes) {
 
 /** The sealed line of a message (after 🔒), or the whole text if there is none. */
 export const secretLine = (text) => /🔒\s*([^\n]*)/u.exec(text)?.[1] ?? text;
+
+// ----------------------------------------------------- message styles
+// How the key travels with the message. "clues" keeps it separate (the key
+// code or key card); the other styles write the key into the message, so a
+// friend reads it at a glance (and so can anyone else who sees it).
+export const STYLES = [
+  { id: 'clues', icon: '🔑', name: 'Clues', blurb: 'Key sent separately: a few clues, a warm-up, the sealed line', keyInside: false },
+  { id: 'letters', icon: '🔤', name: 'Letter code', blurb: '“code: A=✦, B=✧” then the message in symbols', keyInside: true },
+  { id: 'words', icon: '🍎', name: 'Word swap', blurb: '“When I say ‘apple’ I mean ‘cool’” then the code words', keyInside: true },
+  { id: 'numbers', icon: '🔢', name: 'Number map', blurb: '“mapping: 1=y, 2=i” then 1-2-3', keyInside: true },
+  { id: 'emoji', icon: '🟢', name: 'Emoji words', blurb: '“Our secret language: 🔴=hide” then 🔴🔵', keyInside: true },
+];
+export const styleById = (id) => STYLES.find((s) => s.id === id) || STYLES[0];
+
+const DECOYS = (
+  'apple banana cherry mango pebble rocket teapot pickle noodle waffle cactus pancake donut walrus penguin turnip ' +
+  'muffin pretzel coconut kettle lantern biscuit pumpkin gecko tulip popcorn marble button pillow carrot llama ' +
+  'trumpet violin igloo hammock parrot lobster bagel cupcake meteor sprout taco jellybean kiwi mitten yoyo zucchini'
+).split(' ');
+const PALETTE = Array.from('🔴🔵🟢🟡🟣🟠🟤⚫⚪🟥🟦🟩🟨🟪🟧🟫⬛⬜🔶🔷🔺🔻💠🔘');
+const shuffled = (list, rand) => {
+  const a = [...list];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(rand() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+};
+// A word for the word styles: its letters, with punctuation left around it.
+const WORD = /[\p{L}\p{N}'’]+/gu;
+const bare = (w) => w.toLowerCase();
+
+/**
+ * Build the key-inside part of a message for `style`. Returns
+ * { legend: [{ from, to }], line, body } where `body` is the text that goes
+ * after the note, `legend` the pairs shown as chips and `line` the coded text.
+ */
+export function buildStyle(styleId, key, secret, rand = Math.random) {
+  if (styleId === 'letters') {
+    const used = [...new Set(Array.from(plain(secret)).filter((c) => key.toSymbol.has(c)))];
+    const legend = shuffled(used, rand).map((l) => ({ from: l.toUpperCase(), to: key.toSymbol.get(l) }));
+    const line = encodeWith(key, secret).text;
+    return { legend, line, body: `code: ${legend.map((p) => `${p.from}=${p.to}`).join(', ')}.\n${line}` };
+  }
+  if (styleId === 'words') {
+    const words = [...new Map(Array.from(secret.matchAll(WORD), (m) => [bare(m[0]), m[0]])).values()];
+    const pool = shuffled(DECOYS.filter((d) => !words.some((w) => bare(w) === d)), rand);
+    const codeOf = new Map(words.map((w, i) => [bare(w), pool[i % pool.length] + (i >= pool.length ? i : '')]));
+    const legend = words.map((w) => ({ from: codeOf.get(bare(w)), to: w }));
+    const line = secret.replace(WORD, (w) => codeOf.get(bare(w)));
+    return { legend, line, body: `Cipher: ${legend.map((p) => `When I say '${p.from}' I mean '${p.to}'.`).join(' ')} Now: ${line}` };
+  }
+  if (styleId === 'numbers') {
+    // Every letter or digit gets a number, in the order it first appears.
+    const chars = [...new Set(Array.from(secret).filter((c) => /[\p{L}\p{N}]/u.test(c)))];
+    const num = new Map(chars.map((c, i) => [c, i + 1]));
+    const legend = chars.map((c) => ({ from: String(num.get(c)), to: c }));
+    const line = secret
+      .trim()
+      .split(/\s+/)
+      .map((w) => w.replace(/[\p{L}\p{N}]+/gu, (run) => Array.from(run, (c) => num.get(c)).join('-')))
+      .join(' / ');
+    return { legend, line, body: `mapping: ${legend.map((p) => `${p.from}=${p.to}`).join(', ')}.  ${line}` };
+  }
+  if (styleId === 'emoji') {
+    const words = [...new Map(Array.from(secret.matchAll(WORD), (m) => [bare(m[0]), m[0]])).values()];
+    const pool = shuffled(PALETTE, rand);
+    const extra = shuffled(Array.from(themeById('emoji').symbols), rand);
+    const emojiOf = new Map(words.map((w, i) => [bare(w), pool[i] ?? extra[i - pool.length] ?? `#${i}`]));
+    const legend = words.map((w) => ({ from: emojiOf.get(bare(w)), to: w }));
+    // Words sit side by side like in "🔴🔵🟢🟡"; a space survives only after punctuation.
+    const line = secret.trim().replace(WORD, (w) => emojiOf.get(bare(w))).replace(/(?<=[\p{L}\p{N}\p{Extended_Pictographic}⬛⬜])\s+(?=\S)/gu, '');
+    return { legend, line, body: `Our secret language: ${legend.map((p) => `${p.from}=${p.to}`).join(', ')}. ${line}` };
+  }
+  return null;
+}
+
+const Q = `['"‘’“”]`;
+
+/**
+ * Read a message that carries its own key (any of the key-inside styles,
+ * also when written by hand). Returns { secret, style, legend } or null.
+ */
+export function parseInline(text) {
+  const t = text.replace(/️/g, '');
+  // When I say 'apple' I mean 'cool'. … Now: apple banana
+  const says = [...t.matchAll(new RegExp(`When I say ${Q}?([^'"‘’“”]+?)${Q}? I mean ${Q}?([^'"‘’“”]+?)${Q}?\\s*[.!;,]`, 'gi'))];
+  if (says.length) {
+    const map = new Map(says.map((m) => [bare(m[1].trim()), m[2].trim()]));
+    const now = /\bNow\s*:\s*([^\n]*)/i.exec(t)?.[1] ?? t.slice(says.at(-1).index + says.at(-1)[0].length);
+    const secret = now.trim().replace(WORD, (w) => map.get(bare(w)) ?? w);
+    return { style: 'words', secret, legend: says.map((m) => ({ from: m[1].trim(), to: m[2].trim() })) };
+  }
+  // mapping: 1=y, 2=i …  1-2-3-2-4-5
+  const mapping = /mapping\s*:\s*((?:\d+\s*=\s*[^\s,.;]+\s*[,;]?\s*)+)\.?/i.exec(t);
+  if (mapping) {
+    const map = new Map(Array.from(mapping[1].matchAll(/(\d+)\s*=\s*([^\s,.;]+)/g), (m) => [m[1], m[2]]));
+    const rest = t.slice(mapping.index + mapping[0].length).trim().split('\n')[0];
+    const secret = rest
+      .split(/\s*\/\s*|\s{2,}|\s(?=\d)/)
+      .map((w) => w.replace(/\d+(?:-\d+)*/g, (run) => run.split('-').map((n) => map.get(n) ?? n).join('')))
+      .join(' ');
+    return { style: 'numbers', secret: secret.trim(), legend: [...map].map(([from, to]) => ({ from, to })) };
+  }
+  // Our secret language: 🔴=hide, 🔵=me … 🔴🔵
+  const lang = /secret language\s*:\s*/i.exec(t);
+  if (lang) {
+    const after = t.slice(lang.index + lang[0].length);
+    const pairs = [...after.matchAll(/(\S+?)\s*=\s*([^,.;\n]+?)\s*(?=[,.;\n]|$)/gu)];
+    const end = pairs.length ? pairs.at(-1).index + pairs.at(-1)[0].length : 0;
+    const map = new Map(pairs.map((m) => [m[1], m[2].trim()]));
+    const keys = [...map.keys()].sort((a, b) => b.length - a.length);
+    let rest = after.slice(end).replace(/^[\s.,;]+/, '').split('\n')[0];
+    let out = '';
+    while (rest) {
+      const k = keys.find((x) => rest.startsWith(x));
+      if (k) {
+        if (out && !/[\s(“"']$/.test(out)) out += ' ';
+        out += map.get(k);
+        rest = rest.slice(k.length);
+      } else {
+        const ch = Array.from(rest)[0];
+        out += ch;
+        rest = rest.slice(ch.length);
+      }
+    }
+    return { style: 'emoji', secret: out.replace(/\s+/g, ' ').trim(), legend: [...map].map(([from, to]) => ({ from, to })) };
+  }
+  // code: A=X, B=Y, C=Z.  XYZ
+  const code = /\bcode\s*:\s*((?:[a-z0-9]\s*=\s*[^\s,;]+?\s*[,;]?\s*)+)(?:\.|\n|$)/i.exec(t);
+  if (code) {
+    const pairs = Array.from(code[1].matchAll(/([a-z0-9])\s*=\s*([^\s,;]+)/gi), (m) => [m[2].replace(/\.$/, ''), m[1].toLowerCase()]);
+    const map = new Map(pairs);
+    const keys = [...map.keys()].sort((a, b) => b.length - a.length);
+    let rest = t.slice(code.index + code[0].length).trim();
+    let out = '';
+    while (rest) {
+      const k = keys.find((x) => rest.startsWith(x));
+      const ch = k ?? Array.from(rest)[0];
+      out += k ? map.get(k) : ch;
+      rest = rest.slice(ch.length);
+    }
+    return { style: 'letters', secret: out.trim(), legend: pairs.map(([to, from]) => ({ from: from.toUpperCase(), to })) };
+  }
+  return null;
+}
+
+/** The whole message for a sealed entry of any style. */
+export function messageFor(entry) {
+  const key = keyFor(entry.code);
+  if (!entry.style || entry.style === 'clues') return composeMessage({ note: entry.note, key, secret: entry.secret, lesson: entry.lesson });
+  return `${entry.note ? `${entry.note.trim()}\n\n` : ''}${entry.body}`;
+}

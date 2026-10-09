@@ -79,8 +79,17 @@ const FORMATS = [
   },
 ];
 
-/** A random lesson prompt for a friend called `to`. */
-export function lessonPrompt(to = 'friend') {
+// For the key-inside styles the built-in note ends with one of these instead
+// (their own endings talk about clues and a warm-up, which those styles don't have).
+const KEY_INSIDE_ENDINGS = [
+  'The key is written right below. Read it, then crack the message.',
+  'Everything you need is right here: the key first, then the message.',
+  'Study the key below and the words will speak to you.',
+  'No code book needed this time: the key comes with the message.',
+];
+
+/** A random lesson prompt for a friend called `to`. `keyInside`: the key is written into the message. */
+export function lessonPrompt(to = 'friend', { keyInside = false } = {}) {
   const f = pick(FORMATS);
   const name = to.trim() || 'friend';
   const prefill = f.prefill(name);
@@ -88,7 +97,7 @@ export function lessonPrompt(to = 'friend') {
     format: f.name,
     icon: f.icon,
     prefill,
-    fallback: f.fallback(name),
+    fallback: keyInside ? `${prefill} ${pick(KEY_INSIDE_ENDINGS)}` : f.fallback(name),
     messages: [
       {
         role: 'system',
@@ -96,7 +105,7 @@ export function lessonPrompt(to = 'friend') {
           'You write short, fun notes between two friends who share secret codes. Keep it under 70 words. ' +
           'Never write the code itself, never list letters or symbols, and never explain how ciphers work.',
       },
-      { role: 'user', content: `${f.ask} Make it ${pick(TONES)}.` },
+      { role: 'user', content: `${f.ask}${keyInside ? ' Tell them the key is written right below the note.' : ''} Make it ${pick(TONES)}.` },
     ],
   };
 }

@@ -1,5 +1,6 @@
 import {
-  THEMES, LETTERS, keyFor, newCode, normalizeCode, encodeWith, decodeWith, lessonFor, composeMessage, keyCardText, findKey, secretLine,
+  THEMES, LETTERS, STYLES, styleById, keyFor, newCode, encodeWith, decodeWith, lessonFor, composeMessage, keyCardText, findKey, secretLine,
+  buildStyle, parseInline, messageFor, seededRand,
 } from './cipher.js';
 import { AI_SPEC, AI_SIZE_MB, AI_LABEL, lessonPrompt, finalizeNote } from './cipher-ai.js';
 
@@ -25,6 +26,9 @@ export default {
     let history = storage.get(HISTORY_KEY, []);
     if (!Array.isArray(history)) history = [];
     let mastery = storage.get('mastery', {});
+    // Message style for new messages: one of STYLES, or 'surprise' for a random one each time.
+    let styleChoice = storage.get('style', 'surprise');
+    if (styleChoice !== 'surprise' && !STYLES.some((st) => st.id === styleChoice)) styleChoice = 'surprise';
     let pending = null; // the message card waiting for its secret
     let wheelCode = null;
 
@@ -114,6 +118,11 @@ export default {
             <button class="cp-mode" role="tab" data-mode="make">Make</button>
             <button class="cp-mode" role="tab" data-mode="read">Read</button>
             <button class="cp-mode" role="tab" data-mode="practice">Practice</button>
+          </div>
+          <div class="cp-stylepick" role="radiogroup" aria-label="Message style">
+            ${STYLES.map((st) => `<button role="radio" data-style="${st.id}" title="${st.name}: ${st.blurb}">${st.icon}</button>`).join('')}
+            <button role="radio" data-style="surprise" title="Surprise: a random style for every message">🎲</button>
+            <span class="cp-stylename"></span>
           </div>
           <label class="cp-field cp-field-to" title="Your friend's name, used in the lesson notes">To <input class="cp-friend" maxlength="24" spellcheck="false" placeholder="friend"></label>
           <label class="cp-field cp-field-key" title="Paste the key code your friend sent. Leave empty to try every key in your key ring.">Key <input class="cp-keyinput" maxlength="48" spellcheck="false" placeholder="auto · key ring"></label>
@@ -422,10 +431,16 @@ export default {
     $('.cp-ai-retry').addEventListener('click', () => ensureModel().then(() => setAI('ready')).catch((e) => setAI('error', { message: e.message })));
 
     // =========================================================== make: forge
+    // Shows the style, and whether the key travels inside the message (quick to read, but readable by anyone).
+    function styleTag(id = 'clues') {
+      const st = styleById(id);
+      return `<span class="cp-styletag${st.keyInside ? ' open' : ''}" title="${st.keyInside ? 'The key is written inside the message: your friend reads it at once, but so can anyone who sees it' : 'The key travels separately (key code or key card): the most private'}">${st.icon} ${st.name}<small>${st.keyInside ? 'key inside' : 'private'}</small></span>`;
+    }
+
     function cardShell(entry, { animate }) {
       const key = keyFor(entry.code);
       const card = document.createElement('article');
-      card.className = 'cp-card';
+      card.className = `cp-card cp-style-${entry.style || 'clues'}`;
       card.dataset.id = entry.id;
       card.style.setProperty('--c', key.theme.color);
       if (animate) card.classList.add('cp-card-new');
@@ -434,7 +449,7 @@ export default {
         <div class="cp-card-glare"></div>
         <div class="cp-steps"><i class="s1">Forge</i><i class="s2">Your secret</i><i class="s3">Sealed</i></div>
         <header class="cp-card-head">
-          <span class="cp-format"><b>${entry.icon}</b>${escapeHtml(entry.format)}<em>to ${escapeHtml(entry.to || 'friend')}</em></span>
+          <span class="cp-format"><b>${entry.icon}</b>${escapeHtml(entry.format)}<em>to ${escapeHtml(entry.to || 'friend')}</em>${styleTag(entry.style)}</span>
           <span class="cp-card-meta"><button class="cp-keytag" data-act="copy-code" title="Copy the key code"><b>${key.theme.icon}</b>${key.code}</button>${time}</span>
         </header>
         <div class="cp-note"></div>
@@ -471,8 +486,9 @@ export default {
       if (pending?._generating) return;
       if (pending) dropCard(pending);
       const code = newCode();
-      const prompt = lessonPrompt(friend);
-      const entry = { id: Date.now() + Math.floor(Math.random() * 1000), mode: 'make', code, format: prompt.format, icon: prompt.icon, to: friend || 'friend', note: '', at: Date.now() };
+      const style = styleChoice === 'surprise' ? STYLES[Math.floor(Math.random() * STYLES.length)].id : styleChoice;
+      const prompt = lessonPrompt(friend, { keyInside: styleById(style).keyInside });
+      const entry = { id: Date.now() + Math.floor(Math.random() * 1000), mode: 'make', code, style, format: prompt.format, icon: prompt.icon, to: friend || 'friend', note: '', at: Date.now() };
       const spin = setCurrent(code, { forge: true });
       const card = cardShell(entry, { animate: true });
       card.classList.add('cp-generating');
@@ -538,7 +554,8 @@ export default {
       const entry = card._entry;
       const key = keyFor(entry.code);
       entry.secret = secret;
-      entry.lesson = lessonFor(key, secret);
+      if (entry.style === 'clues') entry.lesson = lessonFor(key, secret);
+      else Object.assign(entry, buildStyle(entry.style, key, secret, seededRand(entry.code)));
       pending = null;
       history.push(entry);
       if (history.length > MAX_HISTORY) {
@@ -562,34 +579,70 @@ export default {
     }
 
     /** Fill in the clues, warm-up and the sealed secret. Animated: every letter runs through the wheel. */
+    /** What the sealed line is made of, piece by piece, for the landing animation. */
+    function sealUnits(entry, key) {
+      const style = entry.style || 'clues';
+      if (style === 'clues' || style === 'letters') {
+        const pool = Array.from(key.theme.symbols);
+        return encodeWith(key, entry.secret).tokens.map((t) =>
+          t.letter ? { start: t.src, final: t.out, pool, spoke: t.index, sym: true } : { final: t.out }
+        );
+      }
+      if (style === 'words') {
+        const pool = entry.legend.map((p) => p.from);
+        return entry.line.split(/([\p{L}\p{N}'’]+)/u).filter(Boolean).map((seg) => (/^[\p{L}\p{N}'’]+$/u.test(seg) ? { start: seg, final: seg, pool, word: true } : { final: seg }));
+      }
+      if (style === 'numbers') return Array.from(entry.line, (c) => (/\d/.test(c) ? { final: c, pool: Array.from('0123456789') } : { final: c }));
+      const pool = entry.legend.map((p) => p.from);
+      return Array.from(entry.line, (c) => (pool.includes(c) ? { final: c, pool, emoji: true } : { final: c }));
+    }
+
+    /** Fill in the lesson or legend and the sealed line. Animated: every piece flickers and lands. */
     function renderSealed(card, { animate }) {
       const entry = card._entry;
       const key = keyFor(entry.code);
-      const { clues, warmup } = entry.lesson;
+      const style = entry.style || 'clues';
       card.classList.remove('cp-awaiting', 'cp-generating');
       card.classList.add('cp-done');
       card.querySelector('.cp-sealed').hidden = false;
-      card.querySelector('.cp-lesson').innerHTML =
-        (clues.length ? `<span class="cp-lesson-label">🔑 Clues</span>${clues.map((c, i) => `<span class="cp-clue" style="--i:${i}"><b class="cp-sym">${c.symbol}</b><i>=</i>${c.letter}</span>`).join('')}` : '') +
-        (warmup ? `<span class="cp-lesson-label">✏️ Warm-up</span><span class="cp-warm"><b class="cp-sym">${warmup.symbols}</b><i>=</i>${warmup.word}</span>` : '');
-      const enc = encodeWith(key, entry.secret);
+      const lesson = card.querySelector('.cp-lesson');
+      if (style === 'clues') {
+        const { clues, warmup } = entry.lesson;
+        lesson.innerHTML =
+          (clues.length ? `<span class="cp-lesson-label">🔑 Clues</span>${clues.map((c, i) => `<span class="cp-clue" style="--i:${i}"><b class="cp-sym">${c.symbol}</b><i>=</i>${c.letter}</span>`).join('')}` : '') +
+          (warmup ? `<span class="cp-lesson-label">✏️ Warm-up</span><span class="cp-warm"><b class="cp-sym">${warmup.symbols}</b><i>=</i>${warmup.word}</span>` : '');
+      } else {
+        const st = styleById(style);
+        const label = { letters: 'code', words: 'when I say … I mean', numbers: 'mapping', emoji: 'our secret language' }[style];
+        const from = (p) => (style === 'words' ? `‘${escapeHtml(p.from)}’` : `<b class="${style === 'letters' ? 'cp-sym' : ''}">${escapeHtml(style === 'letters' ? p.to : p.from)}</b>`);
+        const to = (p) => escapeHtml(style === 'letters' ? p.from : p.to);
+        // Letter code reads "A = ✦" like the message; the others read "code = meaning".
+        lesson.innerHTML = `<span class="cp-lesson-label">${st.icon} ${label}</span>${entry.legend
+          .map((p, i) => (style === 'letters'
+            ? `<span class="cp-clue" style="--i:${i}">${to(p)}<i>=</i>${from(p)}</span>`
+            : `<span class="cp-clue cp-clue-${style}" style="--i:${i}">${from(p)}<i>=</i>${to(p)}</span>`))
+          .join('')}`;
+      }
+      const units = sealUnits(entry, key);
       const secretEl = card.querySelector('.cp-secret');
-      secretEl.innerHTML = `<span class="cp-lock">🔒</span>${enc.tokens.map((t) => `<span class="cp-g${t.letter ? ' cp-sym' : ''}">${escapeHtml(t.letter ? t.src : t.out)}</span>`).join('')}`;
+      secretEl.classList.toggle('cp-secret-words', style === 'words' || style === 'numbers');
+      secretEl.innerHTML = `<span class="cp-lock">🔒</span>${units.map((u) => `<span class="cp-g${u.sym ? ' cp-sym' : ''}${u.word ? ' cp-word' : ''}">${escapeHtml(u.start ?? u.final)}</span>`).join('')}`;
       card.querySelector('.cp-plain').textContent = entry.secret;
-      card._message = composeMessage({ note: entry.note, key, secret: entry.secret, lesson: entry.lesson });
+      card._message = messageFor(entry);
+      const spans = [...secretEl.querySelectorAll('.cp-g')];
       if (!animate) {
-        secretEl.querySelectorAll('.cp-g').forEach((g, i) => (g.textContent = enc.tokens[i].out));
+        spans.forEach((g, i) => (g.textContent = units[i].final));
         return;
       }
-      // Each letter starts as itself, flickers through the theme, then lands
-      // on its symbol while its spoke on the wheel lights up.
-      const pool = Array.from(key.theme.symbols);
-      const spans = [...secretEl.querySelectorAll('.cp-g')];
-      const step = Math.max(28, Math.min(90, 1400 / Math.max(1, spans.length)));
+      // Each piece starts as itself, flickers through its pool, then lands;
+      // for the letter styles the matching spoke on the wheel lights up too.
+      const moving = units.filter((u) => u.pool).length;
+      const step = Math.max(28, Math.min(110, 1400 / Math.max(1, moving)));
+      let k = 0;
       spans.forEach((g, i) => {
-        const t = enc.tokens[i];
-        if (!t.letter) {
-          g.textContent = t.out;
+        const u = units[i];
+        if (!u.pool) {
+          g.textContent = u.final;
           return;
         }
         later(() => {
@@ -597,18 +650,20 @@ export default {
           let n = 0;
           const flick = setInterval(() => {
             if (!alive) return clearInterval(flick);
-            g.textContent = pool[(Math.random() * pool.length) | 0];
+            g.textContent = u.pool[(Math.random() * u.pool.length) | 0];
             if (++n > 5) {
               clearInterval(flick);
-              g.textContent = t.out;
+              g.textContent = u.final;
               g.classList.remove('spin');
               g.classList.add('landed');
-              flashSpoke(t.index);
-              lightWheel(new Set([t.index]));
+              if (u.spoke !== undefined) {
+                flashSpoke(u.spoke);
+                lightWheel(new Set([u.spoke]));
+              }
             }
           }, 45);
           cleanups.push(() => clearInterval(flick));
-        }, 200 + i * step);
+        }, 200 + k++ * step);
       });
       later(() => {
         lightWheel(new Set());
@@ -618,7 +673,7 @@ export default {
         const r = secretEl.getBoundingClientRect();
         fx.burst(r.left + 30, r.top + r.height / 2, { count: 40, color: keyFor(entry.code).theme.color, spread: 9 });
         fx.burst(r.left + 30, r.top + r.height / 2, { count: 20, color: '#ffffff', spread: 4 });
-      }, 200 + spans.length * step + 350);
+      }, 200 + moving * step + 350);
     }
 
     function addMakeCard(entry) {
@@ -638,8 +693,9 @@ export default {
 
     function addReadCard(entry, { animate }) {
       const key = keyFor(entry.code);
-      const res = decodeWith(key, entry.src);
-      const secret = decodeWith(key, secretLine(entry.src)).text.trim();
+      const inline = entry.inline ? parseInline(entry.src) : null;
+      const res = inline ? { text: entry.src } : decodeWith(key, entry.src);
+      const secret = inline ? inline.secret : decodeWith(key, secretLine(entry.src)).text.trim();
       const card = document.createElement('article');
       card.className = 'cp-card cp-card-read';
       card.dataset.id = entry.id;
@@ -649,8 +705,8 @@ export default {
       card.innerHTML = `
         <div class="cp-card-glare"></div>
         <header class="cp-card-head">
-          <span class="cp-format"><b>🔓</b>Decrypted<em>${entry.how === 'ring' ? 'key found in your key ring' : 'with the key you entered'}</em></span>
-          <span class="cp-card-meta"><button class="cp-keytag" data-act="copy-code"><b>${key.theme.icon}</b>${key.code}</button>${time}</span>
+          <span class="cp-format"><b>🔓</b>Decrypted<em>${inline ? 'the key was inside the message' : entry.how === 'ring' ? 'key found in your key ring' : 'with the key you entered'}</em>${inline ? styleTag(inline.style) : ''}</span>
+          <span class="cp-card-meta">${inline ? '' : `<button class="cp-keytag" data-act="copy-code"><b>${key.theme.icon}</b>${key.code}</button>`}${time}</span>
         </header>
         <div class="cp-readsecret"></div>
         <details class="cp-full"><summary>Whole message</summary><div></div></details>
@@ -664,7 +720,8 @@ export default {
       Object.assign(card, { _entry: entry, _message: res.text, _secret: secret });
       feed.appendChild(card);
       if (animate) {
-        fx.scramble(out, secret, { duration: Math.min(1600, 500 + secret.length * 40), glyphs: Array.from(key.theme.symbols).slice(0, 40).join('') }).then(() => {
+        const glyphs = inline ? inline.legend.map((p) => p.from).join('') || '01' : Array.from(key.theme.symbols).slice(0, 40).join('');
+        fx.scramble(out, secret, { duration: Math.min(1600, 500 + secret.length * 40), glyphs }).then(() => {
           if (out.isConnected) out.textContent = secret;
         });
       } else {
@@ -676,6 +733,22 @@ export default {
     }
 
     function read(text) {
+      const inline = parseInline(text);
+      if (inline) {
+        const entry = { id: Date.now() + Math.floor(Math.random() * 1000), mode: 'read', src: text, inline: inline.style, code: wheelCode, at: Date.now() };
+        history.push(entry);
+        if (history.length > MAX_HISTORY) history.splice(0, history.length - MAX_HISTORY);
+        storage.set(HISTORY_KEY, history);
+        addReadCard(entry, { animate: true });
+        refreshMeta();
+        input.value = '';
+        autosize();
+        updateLive();
+        feed.scrollTo({ top: feed.scrollHeight, behavior: 'smooth' });
+        scene.pulse(1);
+        burstAt(sendBtn, { count: 30, spread: 7 });
+        return;
+      }
       const found = readKeyFor(text);
       if (!found) {
         shake();
@@ -864,11 +937,14 @@ export default {
       live.classList.remove('idle', 'err');
       if (mode === 'make') {
         if (pending && value.trim()) {
-          const key = keyFor(pending._entry.code);
+          const entry = pending._entry;
+          const key = keyFor(entry.code);
           const enc = encodeWith(key, value);
-          liveText.textContent = enc.text;
-          lightWheel(new Set(enc.tokens.filter((t) => t.letter).map((t) => t.index)));
-          counter.textContent = `${Array.from(value).length} chars · ${key.theme.name}`;
+          // the same seeded shuffle as sealing, so the preview is exactly what gets sent
+          const styled = entry.style === 'clues' || entry.style === 'letters' ? null : buildStyle(entry.style, key, value, seededRand(entry.code));
+          liveText.textContent = styled ? styled.line : enc.text;
+          lightWheel(styled ? new Set() : new Set(enc.tokens.filter((t) => t.letter).map((t) => t.index)));
+          counter.textContent = `${Array.from(value).length} chars · ${styleById(entry.style).name}${styled ? '' : ` · ${key.theme.name}`}`;
         } else {
           liveText.textContent = pending ? 'your secret, sealed, shows up here' : 'every message gets a brand-new alphabet';
           live.classList.add('idle');
@@ -883,6 +959,13 @@ export default {
           live.classList.add('idle');
           counter.textContent = `${keys.length} key${keys.length === 1 ? '' : 's'} in your ring`;
           lightWheel(new Set());
+          return;
+        }
+        const inline = parseInline(value);
+        if (inline) {
+          liveText.textContent = inline.secret || '…';
+          lightWheel(new Set());
+          counter.textContent = `key inside the message · ${styleById(inline.style).name}`;
           return;
         }
         const found = readKeyFor(value);
@@ -998,7 +1081,7 @@ export default {
         practice: 'Learn the current alphabet <b>by heart</b>: one symbol at a time, until you can read it without the card.',
       }[mode];
       $('.cp-empty p').textContent = {
-        make: 'Forge a cipher: the AI writes a lesson, then you seal your secret in it.',
+        make: 'Forge a cipher: the AI writes a lesson, then you seal your secret in it. Pick a message style below: 🔑 keeps the key separate, the others put it inside so your friend reads it instantly.',
         read: 'Decrypted messages show up here.',
         practice: '',
       }[mode];
@@ -1032,19 +1115,44 @@ export default {
         // A demo message sealed with the current key, so it is in the ring.
         const key = keyFor(currentCode);
         const demo = composeMessage({ note: 'Psst! Our new code is live.', key, secret: 'meet me at the gate', lesson: lessonFor(key, 'meet me at the gate', () => 0.3) });
-        const b = Object.assign(document.createElement('button'), { className: 'cp-chip', textContent: 'Try a demo message' });
-        b.addEventListener('click', () => {
-          keyInput.value = '';
-          input.value = demo;
-          autosize();
-          updateLive();
-          read(demo);
-        });
-        box.appendChild(b);
+        // plus one demo for every key-inside style, written the way a person would
+        const demos = [
+          ['🔑 Clues demo', demo],
+          ['🔤 code: A=X', 'code: A=X, B=Y, C=Z. ZXY'],
+          ['🍎 When I say…', "cipher. When I say 'apple' I mean 'cool'. When I say 'banana' I mean 'moon'. Now: apple banana moon"],
+          ['🔢 mapping: 1=y', 'mapping: 1=y, 2=i, 3=V, 4=l, 5=L.  1-2-3-2-4-5'],
+          ['🟢 secret language', 'Our secret language: 🔴=hide, 🔵=me, 🟢=moon, 🟡=out. 🔴🔵🟢🟡'],
+        ];
+        for (const [label, text] of demos) {
+          const b = Object.assign(document.createElement('button'), { className: 'cp-chip', textContent: label, title: text });
+          b.addEventListener('click', () => {
+            keyInput.value = '';
+            input.value = text;
+            autosize();
+            updateLive();
+            read(text);
+          });
+          box.appendChild(b);
+        }
       }
     }
 
+    // ========================================================= message style
+    function setStyleChoice(id, { animate = false } = {}) {
+      styleChoice = id;
+      storage.set('style', id);
+      root.querySelectorAll('.cp-stylepick button').forEach((b) => b.setAttribute('aria-checked', String(b.dataset.style === id)));
+      const st = id === 'surprise' ? null : styleById(id);
+      $('.cp-stylename').textContent = st ? `${st.name}${st.keyInside ? ' · key inside' : ' · private'}` : 'Surprise style';
+      if (animate) burstAt(root.querySelector(`.cp-stylepick [data-style="${id}"]`), { count: 14, spread: 3.5 });
+    }
+    root.querySelectorAll('.cp-stylepick button').forEach((b) => {
+      cleanups.push(fx.ripple(b));
+      b.addEventListener('click', () => setStyleChoice(b.dataset.style, { animate: true }));
+    });
+
     // ============================================================== startup
+    setStyleChoice(styleChoice);
     showKey(currentCode);
     remember(currentCode);
     history.forEach((h) => {
