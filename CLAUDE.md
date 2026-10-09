@@ -10,3 +10,5 @@ architecture, every module, packaging fixes, gotchas and open items.
 - Prefix each module's CSS classes; use `backwards` fill for entrance animations
 - When testing the app, use a temporary user-data dir so the user's history isn't touched
 - AI model is set only in `src/modules/braille/ai-modes.js` (`AI_SPEC`)
+- Releases: bump `version` in `package.json` and add `release-notes/<version>.md`;
+  pushing it makes `.github/workflows/release.yml` build the AppImage and publish release `v<version>`

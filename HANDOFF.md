@@ -31,6 +31,10 @@ npm run dist     # build the AppImage (also runs scripts/vendor.js first)
   drops any `examples/` folder inside `node_modules`.
 - Electron 44.7, electron-builder 26.15, three 0.186, @huggingface/transformers 4.3.1.
 - DevTools: F12 or Ctrl+Shift+I. Ctrl+R reloads. Esc returns home.
+- Releases: `.github/workflows/release.yml` builds the AppImage on GitHub and
+  publishes release `v<version>` (AppImage + .sha256) whenever `package.json`
+  changes and that version has no release yet; also runnable by hand from the
+  Actions tab. Release text = `release-notes/<version>.md` + install steps.
 - If `npm ci` fails in `onnxruntime-node`'s postinstall (it downloads optional
   CUDA libraries, which the build excludes anyway), install with
   `ONNXRUNTIME_NODE_INSTALL=skip npm ci`; the CPU runtime is in the package.

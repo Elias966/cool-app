@@ -8,6 +8,10 @@ tied to one feature.
 It ships with eight modules: **Text to Braille**, **Text to Base64**, **Text to Dingbats**, **Ancient Scripts**,
 **Esoteric Languages**, **Layered Encoding**, **Japanese Scripts** and **Cipher Pact**.
 
+## Download
+
+The latest AppImage is on the repository's **Releases** page (`Prism-<version>-x86_64.AppImage`). Releases are built and published automatically by GitHub Actions whenever the version in `package.json` changes.
+
 ## Run the AppImage
 
 ```bash

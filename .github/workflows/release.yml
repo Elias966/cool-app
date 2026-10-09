@@ -1,0 +1,95 @@
+# Builds the AppImage and publishes it as a GitHub release.
+#
+# Runs whenever package.json changes (so bumping "version" is all it takes to
+# ship), and can also be started by hand from the Actions tab. If a release
+# for the current version already exists, the build is skipped.
+# The release description comes from release-notes/<version>.md when present.
+name: Release AppImage
+
+on:
+  push:
+    paths:
+      - package.json
+      - .github/workflows/release.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-appimage
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Read version
+        id: version
+        run: echo "version=$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
+
+      - name: Skip if this version is already released
+        id: check
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view "v${{ steps.version.outputs.version }}" --repo "$GITHUB_REPOSITORY" > /dev/null 2>&1; then
+            echo "Release v${{ steps.version.outputs.version }} already exists, nothing to do."
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/setup-node@v4
+        if: steps.check.outputs.exists == 'false'
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        if: steps.check.outputs.exists == 'false'
+        # onnxruntime-node's optional CUDA download isn't needed (the build excludes it).
+        env:
+          ONNXRUNTIME_NODE_INSTALL: skip
+        run: npm ci --no-audit --no-fund
+
+      - name: Build the AppImage
+        if: steps.check.outputs.exists == 'false'
+        run: npm run dist -- --publish never
+
+      - name: Checksum and release notes
+        if: steps.check.outputs.exists == 'false'
+        id: files
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          FILE="Prism-${VERSION}-x86_64.AppImage"
+          (cd dist && sha256sum "$FILE" > "$FILE.sha256")
+          {
+            if [ -f "release-notes/${VERSION}.md" ]; then cat "release-notes/${VERSION}.md"; echo; fi
+            echo "## Install"
+            echo
+            echo '```bash'
+            echo "chmod +x ${FILE}"
+            echo "./${FILE}"
+            echo '```'
+            echo
+            echo "Linux x86_64 (Ubuntu 22.04+, Zorin, Arch, Fedora…). Your history and downloaded AI model are kept between versions."
+            echo
+            echo "SHA-256: \`$(cut -d' ' -f1 "dist/$FILE.sha256")\`"
+          } > release-body.md
+          echo "file=$FILE" >> "$GITHUB_OUTPUT"
+
+      - name: Publish the release
+        if: steps.check.outputs.exists == 'false'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.version.outputs.version }}
+          name: Prism ${{ steps.version.outputs.version }}
+          target_commitish: ${{ github.sha }}
+          body_path: release-body.md
+          make_latest: true
+          files: |
+            dist/${{ steps.files.outputs.file }}
+            dist/${{ steps.files.outputs.file }}.sha256
