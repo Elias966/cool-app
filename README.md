@@ -17,16 +17,15 @@ layered encodings · Japanese scripts · a private cipher, plus a universal tran
 ![License: MIT](https://img.shields.io/badge/license-MIT-ff4fd8?style=flat-square)
 
 [**Download**](https://github.com/Elias966/cool-app/releases/latest) &nbsp;·&nbsp;
-[**Watch the trailer**](docs/media/prism-trailer.mp4) &nbsp;·&nbsp;
 [Modules](#the-eight-modules) &nbsp;·&nbsp;
 [Build from source](#build-from-source) &nbsp;·&nbsp;
 [Write a module](#write-your-own-module)
 
 <br>
 
-<a href="docs/media/prism-trailer.mp4"><img src="docs/media/trailer-preview.gif" width="100%" alt="Prism trailer: the prism splits light into the logo, braille dots rise, Base64 rebuilds itself and a cipher wheel seals a secret"></a>
+https://github.com/user-attachments/assets/97c9d402-3221-4ac4-b2d4-cb94340df891
 
-<sub>▶&nbsp; <a href="docs/media/prism-trailer.mp4"><b>Watch the full 79-second trailer</b></a> (with sound)</sub>
+<sub>▶&nbsp; The 79-second trailer, sound on. Also available as a <a href="docs/media/prism-trailer.mp4">1080p download</a>.</sub>
 
 </div>
 
@@ -662,7 +661,7 @@ on phone and tablet sizes, and reports layout, errors and leaks (see
 
 ## About the trailer
 
-The [trailer](docs/media/prism-trailer.mp4) was rendered frame by frame with three.js, with
+The trailer at the top of this page ([1080p download](docs/media/prism-trailer.mp4)) was rendered frame by frame with three.js, with
 4-sample motion blur. Its screens show real recordings of Prism in use, and the soundtrack
 is synthesized. The narration was produced locally with VoiceStudio.
 
