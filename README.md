@@ -1,72 +1,214 @@
+<div align="center">
+
+<img src="build/icon.png" width="112" alt="Prism icon">
+
 # Prism
 
-A modular workspace with a live 3D background, built on Electron and
-three.js and packaged as a Linux AppImage and an Android app. Every page is a **module**: a
-self-contained folder the shell finds when it starts. Nothing in the shell is
-tied to one feature.
+**Eight wild ways to transform text, in one glowing 3D workspace.**
 
-It ships with eight modules: **Text to Braille**, **Text to Base64**, **Text to Dingbats**, **Ancient Scripts**,
-**Esoteric Languages**, **Layered Encoding**, **Japanese Scripts** and **Cipher Pact**.
+Braille · Base64 · Wingdings · runes and hieroglyphs · esoteric programming languages ·
+layered encodings · Japanese scripts · a private cipher, plus a universal translator that reads them all back.
+
+[![Latest release](https://img.shields.io/github/v/release/Elias966/cool-app?style=flat-square&color=7c5cff&label=release)](https://github.com/Elias966/cool-app/releases/latest)
+[![Linux AppImage](https://img.shields.io/badge/Linux-AppImage-22d3ee?style=flat-square&logo=linux&logoColor=white)](https://github.com/Elias966/cool-app/releases/latest)
+[![Android 7.0+](https://img.shields.io/badge/Android-7.0%2B-39ff88?style=flat-square&logo=android&logoColor=white)](https://github.com/Elias966/cool-app/releases/latest)
+![Electron](https://img.shields.io/badge/Electron-2b2e3a?style=flat-square&logo=electron&logoColor=9feaf9)
+![three.js](https://img.shields.io/badge/three.js-2b2e3a?style=flat-square&logo=threedotjs&logoColor=white)
+![License: MIT](https://img.shields.io/badge/license-MIT-ff4fd8?style=flat-square)
+
+[**Download**](https://github.com/Elias966/cool-app/releases/latest) &nbsp;·&nbsp;
+[**Watch the trailer**](docs/media/prism-trailer.mp4) &nbsp;·&nbsp;
+[Modules](#the-eight-modules) &nbsp;·&nbsp;
+[Build from source](#build-from-source) &nbsp;·&nbsp;
+[Write a module](#write-your-own-module)
+
+<br>
+
+<a href="docs/media/prism-trailer.mp4"><img src="docs/media/trailer-preview.gif" width="100%" alt="Prism trailer: the prism splits light into the logo, braille dots rise, Base64 rebuilds itself and a cipher wheel seals a secret"></a>
+
+<sub>▶&nbsp; <a href="docs/media/prism-trailer.mp4"><b>Watch the full 79-second trailer</b></a> (with sound)</sub>
+
+</div>
+
+<br>
+
+## Why Prism
+
+<table>
+<tr>
+<td width="33%" valign="top">
+
+### 🔁 Exact round trips
+Everything you encode comes back exactly, even from lossy styles like katakana or runes: an invisible copy of the original rides along with the text.
+
+</td>
+<td width="33%" valign="top">
+
+### 🌐 Universal translator
+Paste anything a module made into the bar on Home. Prism names the module and style, says how sure it is, and gives your words back.
+
+</td>
+<td width="33%" valign="top">
+
+### 🧩 Truly modular
+Every page is a self-contained module. Drop a folder into `~/.config/Prism/modules/` and it appears, with no rebuild.
+
+</td>
+</tr>
+<tr>
+<td valign="top">
+
+### 🧠 Local AI, fully offline
+Braille Quest and Cipher Pact's lesson notes come from a small model running on your CPU. It never sees your secrets.
+
+</td>
+<td valign="top">
+
+### 🔊 Synthesized sound
+Every chime, carve and click is generated live with Web Audio, in one pentatonic scale and panned to where its animation happens. There are no audio files.
+
+</td>
+<td valign="top">
+
+### 📱 Desktop and Android
+A Linux AppImage and an Android app (7.0+, phones and tablets) run the same code, with layouts, sound and haptics tuned for each.
+
+</td>
+</tr>
+</table>
+
+## The eight modules
+
+<table>
+<tr>
+<td width="50%" valign="top">
+<img src="docs/media/modules/braille.jpg" alt="Text to Braille">
+<h3>⠿ Text to Braille</h3>
+Unified English Braille, cell by cell, as 3D dots. Decode by pasting, typing Braille ASCII or chording on a Perkins keypad. Two local-AI modes hide your braille in stories.
+</td>
+<td width="50%" valign="top">
+<img src="docs/media/modules/base64.jpg" alt="Text to Base64">
+<h3>⌗ Text to Base64</h3>
+Watch your text split into bytes, regroup into 6-bit groups and become Base64, live as you type. URL-safe, padding and data URIs included.
+</td>
+</tr>
+<tr>
+<td valign="top">
+<img src="docs/media/modules/dingbats.jpg" alt="Text to Dingbats">
+<h3>✈ Text to Dingbats</h3>
+Wingdings, Webdings, Symbol and Zapf Dingbats as plain Unicode you can paste anywhere, with a live symbol keyboard.
+</td>
+<td valign="top">
+<img src="docs/media/modules/ancient.jpg" alt="Ancient Scripts">
+<h3>ᚱ Ancient Scripts</h3>
+Carve your text into runes, hieroglyphs, Ogham, cuneiform, Greek and Latin, all side by side like the Rosetta Stone.
+</td>
+</tr>
+<tr>
+<td valign="top">
+<img src="docs/media/modules/esolang.jpg" alt="Esoteric Languages">
+<h3>&gt;_ Esoteric Languages</h3>
+Compile text into Brainfuck, Ook!, Whitespace, Malbolge, Befunge or Unary, then watch a virtual machine run it.
+</td>
+<td valign="top">
+<img src="docs/media/modules/layers.jpg" alt="Layered Encoding">
+<h3>≡ Layered Encoding</h3>
+Stack up to eight encoders in any order, then peel them back off, even when the chain is unknown.
+</td>
+</tr>
+<tr>
+<td valign="top">
+<img src="docs/media/modules/japanese.jpg" alt="Japanese Scripts">
+<h3>ア Japanese Scripts</h3>
+Katakana loanwords, hiragana, romaji mix, halfwidth code rain and look-alike kanji, with furigana and vertical writing.
+</td>
+<td valign="top">
+<img src="docs/media/modules/cipher.jpg" alt="Cipher Pact">
+<h3>🔑 Cipher Pact</h3>
+A private cipher with a friend: every message gets a brand-new alphabet, sealed into a note the local AI writes.
+</td>
+</tr>
+</table>
+
+Each module is documented in detail in the [module guide](#module-guide) below.
 
 ## Universal translator
 
+<img src="docs/media/translator.jpg" alt="The universal translator on Home naming braille and decoding it" align="right" width="46%">
+
 The bar on Home reads anything a module made, without opening the module or
-knowing which one it was: paste braille, Base64, dingbats, runes, a Brainfuck
-program, a layered string, katakana or a Cipher Pact message, press Enter, and
-it names the module and style, shows how sure it is, and gives the text back
-(exactly, when the text carries Prism's invisible copy of the original). Other
-possible readings are listed below it, and *Open* jumps to that module.
+knowing which one it was. Paste braille, Base64, dingbats, runes, a Brainfuck
+program, a layered string, katakana or a Cipher Pact message and press Enter. It:
+
+- names the **module and style**, and shows how sure it is;
+- gives the text back, **exactly** (✓) when the text carries Prism's invisible copy of the original;
+- lists other possible readings, and **Open** jumps to that module.
+
 Sealed Cipher Pact messages are read with the keys in your key ring.
+
+<br clear="right">
 
 ## Download
 
-The latest version is on the repository's **Releases** page:
+| Platform | File | Notes |
+| --- | --- | --- |
+| **Linux** (x86_64) | `Prism-<version>-x86_64.AppImage` | Runs as-is on Ubuntu 22.04+, Arch, Fedora and other current distros |
+| **Android 7.0+** | `Prism-<version>.apk` | Phones and tablets. Allow installing from your browser or file manager ([details](android%20version/README.md)) |
 
-- **Linux:** `Prism-<version>-x86_64.AppImage`
-- **Android 7.0+** (phones and tablets): `Prism-<version>.apk`. Open it on the device and allow installing from your browser/file manager. See [`android version/README.md`](android%20version/README.md).
+Get both from the [**latest release**](https://github.com/Elias966/cool-app/releases/latest).
+Each release ships `.sha256` checksums. Releases are built and published by GitHub Actions
+whenever the version in `package.json` changes.
 
-Releases are built and published automatically by GitHub Actions whenever the version in `package.json` changes.
+<img src="docs/media/android.jpg" alt="Prism on an Android phone" align="right" width="190">
 
-## Run the AppImage
+### Run the AppImage
 
 ```bash
-chmod +x dist/Prism-<version>-x86_64.AppImage
-./dist/Prism-<version>-x86_64.AppImage
+chmod +x Prism-<version>-x86_64.AppImage
+./Prism-<version>-x86_64.AppImage
 ```
 
-The AppImage uses the static type 2 runtime (`build.toolsets.appimage: "1.0.3"`),
-so it doesn't need the old `libfuse2`/`fuse2` package. It runs as-is on Ubuntu
-22.04+ and on Arch, Fedora and other current distros. The system only needs the
-`fusermount3` helper from FUSE 3, which desktop installs already have. On a very
-minimal system without it, either install it (`sudo pacman -S fuse3` /
-`sudo apt install fuse3`) or run with `--appimage-extract-and-run`.
+The AppImage uses the static type 2 runtime (`build.toolsets.appimage: "1.0.3"`), so it
+doesn't need the old `libfuse2`/`fuse2` package. It only needs the `fusermount3` helper from
+FUSE 3, which desktop installs already have. On a very minimal system without it, install it
+(`sudo pacman -S fuse3` / `sudo apt install fuse3`) or run with `--appimage-extract-and-run`.
+
+<details>
+<summary>Desktop integration</summary>
+
+<br>
 
 When it runs as an AppImage, Prism registers itself for the current user
 (`~/.local/share/applications/prism.desktop` plus an icon in
-`~/.local/share/icons/hicolor/512x512/apps/prism.png`). This gives it its icon
-in the dock/taskbar and an entry in the app menu. The entry's launch path is
-updated whenever you start the AppImage from a new location. To remove it,
-delete those two files.
+`~/.local/share/icons/hicolor/512x512/apps/prism.png`). This gives it its icon in the
+dock/taskbar and an entry in the app menu. The entry's launch path is updated whenever
+you start the AppImage from a new location. To remove it, delete those two files.
 
-## Develop
+</details>
+
+<br clear="right">
+
+## Build from source
 
 Node.js is installed locally in `.tools/node` (nothing is installed system-wide).
 
 ```bash
 export PATH="$PWD/.tools/node/bin:$PATH"
-npm start          # run the app
-npm run dist       # build dist/Prism-<version>-x86_64.AppImage
-npm run android    # build the Android APK (needs the Android SDK; see android version/README.md)
-npm run check -- <module|all>   # test a module on desktop, phones and tablets (tests/check/README.md)
+npm start                        # run the app
+npm run dist                     # build dist/Prism-<version>-x86_64.AppImage
+npm run android                  # build the Android APK (needs the Android SDK, see android version/README.md)
+npm run check -- <module|all>    # test a module on desktop, phones and tablets (tests/check/README.md)
 ```
 
 Shortcuts: `F12` / `Ctrl+Shift+I` open DevTools, `Ctrl+R` reloads, `Esc` returns to Home.
 
-## Project layout
+<details>
+<summary><b>Project layout</b></summary>
 
 ```
 electron/main.js        window, app:// protocol, module discovery
 electron/preload.js     the small, safe API exposed as window.prism
+electron/ai-host.mjs    background process that downloads and runs AI models
 src/index.html          the shell
 src/core/app.js         router, dock, transitions, the context handed to modules
 src/core/scene.js       three.js background (stars, core artifact, grid, bloom)
@@ -77,7 +219,6 @@ src/core/sound.js       ctx.sound: synthesized sound effects (Web Audio, no file
 src/core/translate.js   the universal translator on Home (runs every module's reader.js)
 src/core/hidden.js      the invisible copy that makes lossy results decode exactly
 src/core/english.js     English word list (SCOWL) the decoders use to pick real words
-electron/ai-host.mjs    background process that downloads and runs AI models
 src/modules/<id>/       built-in modules
 build/                  icon + AppImage launcher hook
 android version/        the Android app: WebView shell that runs the same src/
@@ -85,112 +226,18 @@ scripts/                vendor.js (copies three.js into src/vendor), android.js 
 tests/check/            npm run check: static rules, round trips, desktop + phone/tablet runs
 tests/mobile/           Playwright checks at phone and tablet sizes
 release-notes/          text for each GitHub release
+docs/media/             the trailer and the images in this README
 .github/workflows/      builds and publishes the AppImage and APK
 ```
 
-## Writing a module
+</details>
 
-A module is a folder containing a `module.json` and an ES module entry file.
-Modules are loaded from two places:
+## Module guide
 
-- `src/modules/` — bundled with the app
-- `~/.config/Prism/modules/` — **your own modules; no rebuild needed.** Click
-  the folder button in the dock to open it, drop a module folder in, then click
-  reload. A user module with the same `id` as a built-in one replaces it.
+<details>
+<summary><b>⠿ Text to Braille</b>: UEB Grade 1, both directions, Perkins keypad, local-AI modes</summary>
 
-**`module.json`**
-
-```json
-{
-  "id": "hello",
-  "name": "Hello",
-  "description": "Shown on the Home card.",
-  "icon": "icon.svg",
-  "accent": "#ff5c8a",
-  "entry": "index.js",
-  "style": "style.css",
-  "order": 20
-}
-```
-
-`icon` can be an image file in the folder or a short text/emoji. `style` can be
-one file or a list, and is removed again when the user leaves the module.
-
-To take part in the universal translator on Home, add `"reader": "reader.js"`:
-its default export is `read(text, { storage }) → null | { text, style, confidence }`,
-where `confidence` (0–1) says how sure it is that the text is its kind and
-`storage` is the module's own `ctx.storage`. The translator ranks every
-module's reading by confidence and by how readable the result is.
-
-**`index.js`**
-
-```js
-export default {
-  mount(root, ctx) {
-    root.innerHTML = `<h1 class="hello-title">Hello</h1><button class="hello-btn">Boom</button>`;
-    const btn = root.querySelector('.hello-btn');
-    const offTilt = ctx.fx.tilt(btn);
-    btn.onclick = (e) => {
-      ctx.fx.burst(e.clientX, e.clientY);
-      ctx.scene.pulse();
-      ctx.toast('Hello from a module');
-    };
-    return () => offTilt(); // cleanup when the user leaves
-  },
-};
-```
-
-**The `ctx` object**
-
-| Member | What it does |
-| --- | --- |
-| `ctx.meta` | the module's manifest, plus `baseUrl` and `source` |
-| `ctx.scene.pulse(n)` / `warp(n)` / `setAccent(hex)` / `setFocus('home' \| 'module')` | drive the 3D background |
-| `ctx.fx.tilt(el, opts)` | 3D tilt that follows the pointer; sets `--mx`/`--my` for glare effects |
-| `ctx.fx.magnetic(el)`, `ctx.fx.ripple(el)` | pointer effects |
-| `ctx.fx.scramble(el, text)` | decode-style text reveal (returns a promise) |
-| `ctx.fx.burst(x, y, { color, count, target })` | particle sparks, optionally streaming to a point |
-| `ctx.sound.play(name, { x, ... })` | a synthesized sound effect (`x` pans it to that screen position); `ctx.sound.sequence([{ at, name }])` plays a timeline and returns `{ stop() }` |
-| `ctx.toast(message)` | notification pill |
-| `ctx.storage.get/set/remove(key)` | JSON storage kept separate for each module |
-| `ctx.navigate(id)` | go to another module (or `'home'`) |
-| `ctx.url(path)` | resolve a file inside the module's folder |
-| `ctx.ai.load(spec, { onProgress })` | download (first time) and load a Hugging Face ONNX model, e.g. `{ model: 'onnx-community/Qwen2.5-1.5B-Instruct', dtype: 'q4f16' }` |
-| `ctx.ai.generate(spec, { messages, prefill }, { onToken })` | stream text from the local model; returns `{ done, cancel }` |
-
-Sound comes for free with the shared effects: `burst`, `scramble`, `scene.pulse`
-and `scene.warp` play matching sounds (pass `silent: true` to `burst`/`scramble`
-to skip them), and the shell adds sounds for clicks, hovers, typing and
-navigation. The presets live in `src/core/sound.js`. On phones and tablets
-(`ctx.sound.handheld` is true) the same sounds are re-voiced for small speakers
-and key moments also buzz (`ctx.sound.haptic('tick' | 'press' | 'heavy' |
-'success' | 'error')`); modules don't need to do anything.
-
-Prefix your CSS classes (as the braille module does with `br-`) so modules don't
-clash. The shell's CSS variables (`--accent`, `--text`, `--muted`, `--glass`,
-`--line`, `--ease-out`, …) are available for a consistent look. Entrance
-animations should use `backwards` fill (not `forwards`/`both`), or they lock
-`transform` and break the hover tilt.
-
-**Phones and tablets.** Modules also run in the Android app, so each module's
-CSS ends with a "phones and tablets" section. All modules use the same
-breakpoints, and the desktop layout stays untouched:
-
-| Case | Media query |
-| --- | --- |
-| Phone (portrait) | `(max-width: 599px), (max-width: 760px) and (orientation: portrait)` |
-| Landscape phone | `(max-height: 520px) and (min-width: 600px)` |
-| Stacked (one column) | `(max-width: 1000px) and (hover: none), (max-width: 760px), (max-height: 520px) and (min-width: 600px)` |
-| Keyboard open | `(max-width: 760px) and (orientation: portrait) and (max-height: 560px)` |
-| Touch targets | `(pointer: coarse)` |
-
-`body.handheld` is set on touch devices (hide keyboard-only hints under it) and
-`body.platform-android` inside the app. Text inputs need a font size of at
-least 16px on phones. `npm run check -- <module>` runs a module on desktop
-and on phone and tablet sizes and reports layout, errors and leaks
-(`tests/check/README.md`).
-
-## Text to Braille
+<br>
 
 The module translates in both directions. Use the switch in its header to pick
 **Text → Braille** or **Braille → Text**. Your choice is remembered.
@@ -245,10 +292,15 @@ In both modes, press `Enter` or **Send** to translate and `Esc` to clear the box
 in Text → Braille mode, `Shift+Enter` adds a new line. History from both modes
 is kept between sessions.
 
-## Text to Base64
+</details>
+
+<details>
+<summary><b>⌗ Text to Base64</b>: a live byte-by-byte pipeline, URL-safe, data URIs</summary>
+
+<br>
 
 - Encodes text to Base64 (RFC 4648). Text is turned into UTF-8 bytes first, so
-  any language and emoji work. It decodes too (see *Decode modes* below).
+  any language and emoji work. It decodes too (see *Decode modes*).
 - A live pipeline shows the first 9 bytes as you type: each byte (8 bits), the
   same bits regrouped into 6-bit groups, and the character each group becomes.
   Added zero bits and `=` padding are marked.
@@ -260,7 +312,12 @@ is kept between sessions.
   **Copy Base64**, **Copy as data URI**, **Edit** and **Remove**. History is
   kept between sessions.
 
-## Text to Dingbats
+</details>
+
+<details>
+<summary><b>✈ Text to Dingbats</b>: Wingdings, Webdings, Symbol and Zapf Dingbats as real Unicode</summary>
+
+<br>
 
 - Turns text into four classic symbol fonts: **Wingdings**, **Webdings**,
   **Symbol** (Greek and math) and **Zapf Dingbats**. Pick one from the deck in
@@ -280,7 +337,12 @@ is kept between sessions.
   (SIL Open Font License, see `src/modules/dingbats/fonts/OFL.txt`) so every
   symbol renders the same on any machine.
 
-## Ancient Scripts
+</details>
+
+<details>
+<summary><b>ᚱ Ancient Scripts</b>: runes, hieroglyphs, Ogham, cuneiform, Greek and Latin</summary>
+
+<br>
 
 - Carves text into six historical writing systems: **Elder Futhark** runes,
   **Egyptian hieroglyphs**, **Ogham**, **cuneiform** (the Ugaritic alphabet),
@@ -301,7 +363,111 @@ is kept between sessions.
   Noto Sans Runic, Ogham, Egyptian Hieroglyphs and Ugaritic, plus Noto Serif
   Display (SIL Open Font License, see `src/modules/ancient/fonts/OFL.txt`).
 
-## Decode modes
+</details>
+
+<details>
+<summary><b>&gt;_ Esoteric Languages</b>: six languages and a step-by-step virtual machine</summary>
+
+<br>
+
+- Compiles text into a program that prints it, in six esoteric languages:
+  **Brainfuck** (with multiplication loops), **Ook!**, **Whitespace** (shown
+  with · → ↵ markers; copying gives the real invisible program), **Malbolge**,
+  **Befunge** and **Unary** (too long to ever store, so you get its exact
+  length).
+- A built-in virtual machine runs the program step by step: the Brainfuck
+  tape, the Whitespace stack, Malbolge's registers in base 3, and the Befunge
+  playfield and stack, with the running instruction highlighted in the code.
+- Every program is checked by running it: the badge only says "verified"
+  when its output matches your text. The Malbolge interpreter was checked
+  against the published Malbolge "Hello, world" program.
+- Malbolge limit: without jumps it can only reach 201 of the 256 byte values,
+  which covers all of ASCII but not the bytes UTF-8 needs, so when it runs,
+  accents are dropped and other non-ASCII characters print as "?" (the app
+  says so). The copied program carries the exact text invisibly, so
+  Program → Text still gives it back.
+
+</details>
+
+<details>
+<summary><b>≡ Layered Encoding</b>: chains of up to eight encoders, and Auto-peel</summary>
+
+<br>
+
+- Stacks up to 8 reversible encodings on one string, in any order: **Base64**,
+  **Base32**, **Ascii85**, **Hex**, **Binary**, **Percent**, **HTML entities**,
+  **Unicode escapes**, **ROT13**, **ROT47**, **Atbash**, **Reverse** and
+  **Fullwidth**.
+- Build the chain in the side panel: click tiles to add layers, drag (or use
+  ↑ ↓) to reorder, pick a preset, or **Shuffle** for a random order and depth.
+- Decoding has two modes. *My chain* undoes your chain exactly. *Auto-peel*
+  takes text encoded with an unknown chain and searches for the layers that
+  make it readable again. It recovers about 98% of random chains up to 5
+  layers deep; the misses are cases with no single answer, such as very short
+  or reversed CJK text.
+
+</details>
+
+<details>
+<summary><b>ア Japanese Scripts</b>: katakana, hiragana, romaji mix, hankaku and kanji-look</summary>
+
+<br>
+
+- Writes text in five styles: **Katakana** (English turned into loanword
+  katakana, with a dictionary of real loanwords and spelling rules for the
+  rest), **Hiragana** (a letter cipher), **Romaji mix** (romaji syllables
+  become kana, other words stay Latin), **Hankaku** (halfwidth katakana) and
+  **Kanji-look** (look-alike kanji).
+- Furigana (reading aids above the characters) and vertical writing
+  (tategaki) can be switched on.
+- Everything you write here decodes back exactly (see *Decode modes*). Katakana
+  from elsewhere is read with a loanword dictionary and the same spelling rules
+  run backwards over 64,000 English words (フロム → from); anything else
+  becomes romaji.
+- Bundles cut-down Noto Sans JP and Noto Serif JP fonts (SIL Open Font License).
+
+</details>
+
+<details>
+<summary><b>🔑 Cipher Pact</b>: a private cipher with a brand-new alphabet for every message</summary>
+
+<br>
+
+- A private cipher between you and a friend. Every message gets a new key
+  code (like `VIOLET-MAMMOTH-508`, about 2 million combinations), and the
+  code alone decides a brand-new random alphabet of symbols (runes, shapes,
+  emoji and more).
+- **Make:** *Forge* spins the vault wheel while the local AI writes a short
+  lesson note in one of ten formats (pirate note, spy briefing, treasure
+  map…). Then type your secret and *Seal* it into the note. The AI never sees
+  the alphabet or your secret; the clues and a warm-up word are added by the
+  app and never use letters of the secret. Without the AI, a built-in note is
+  used.
+- **Message styles:** 🔑 *Clues* (the key is sent separately, the most
+  private), or a style that puts the key inside the message so your friend can
+  read it straight away: 🔤 *Letter code* (`code: A=✦, B=✧`), 🟥 *Color boxes*
+  (every letter is a coloured box: 🟥🟦🟢💛…), 😀 *Emoji letters* (every letter
+  is an emoji: 🍕🦊🚀…), 🍎 *Word swap* and 🔢 *Number map*. 🎲 *Surprise* picks
+  one for each message. Color boxes and Emoji letters messages get their own
+  key (codes starting with `BOX-` / `EMO-`), so the key card, the wheel,
+  Practice and Read all use those boxes or emoji. Older 🟢 *Emoji words*
+  messages (one emoji per word) still read back.
+- Emoji, capitals and accents in a secret come back exactly, also with emoji
+  alphabets (a 🍕 you type stays a 🍕).
+- **Read:** paste a message; Prism finds the key in your key ring, or uses the
+  code your friend gave you.
+- **Practice:** flashcards for learning an alphabet by heart, with a streak and
+  per-symbol progress.
+- Key cards (the whole alphabet of a key, in its own boxes, emoji or symbols)
+  can be copied as an image, saved as PNG or copied as text; on Android they
+  open the share sheet.
+
+</details>
+
+<details>
+<summary><b>↩ Decode modes</b>: how every module reads its output back, exactly</summary>
+
+<br>
 
 Every module can translate both ways. Braille has Braille → Text, and the
 others have a switch in their console bar.
@@ -343,86 +509,12 @@ mark for a capital or an accent, which tells nothing about the letter itself.
 - **Cipher Pact → Read:** paste a friend's message and it finds the right key
   in your key ring, or type the key code they gave you.
 
-## Esoteric Languages
+</details>
 
-- Compiles text into a program that prints it, in six esoteric languages:
-  **Brainfuck** (with multiplication loops), **Ook!**, **Whitespace** (shown
-  with · → ↵ markers; copying gives the real invisible program), **Malbolge**,
-  **Befunge** and **Unary** (too long to ever store, so you get its exact
-  length).
-- A built-in virtual machine runs the program step by step: the Brainfuck
-  tape, the Whitespace stack, Malbolge's registers in base 3, and the Befunge
-  playfield and stack, with the running instruction highlighted in the code.
-- Every program is checked by running it: the badge only says "verified"
-  when its output matches your text. The Malbolge interpreter was checked
-  against the published Malbolge "Hello, world" program.
-- Malbolge limit: without jumps it can only reach 201 of the 256 byte values,
-  which covers all of ASCII but not the bytes UTF-8 needs, so when it runs,
-  accents are dropped and other non-ASCII characters print as "?" (the app
-  says so). The copied program carries the exact text invisibly, so
-  Program → Text still gives it back.
+<details>
+<summary><b>🔊 Sound</b>: every effect synthesized live</summary>
 
-## Layered Encoding
-
-- Stacks up to 8 reversible encodings on one string, in any order: **Base64**,
-  **Base32**, **Ascii85**, **Hex**, **Binary**, **Percent**, **HTML entities**,
-  **Unicode escapes**, **ROT13**, **ROT47**, **Atbash**, **Reverse** and
-  **Fullwidth**.
-- Build the chain in the side panel: click tiles to add layers, drag (or use
-  ↑ ↓) to reorder, pick a preset, or **Shuffle** for a random order and depth.
-- Decoding has two modes. *My chain* undoes your chain exactly. *Auto-peel*
-  takes text encoded with an unknown chain and searches for the layers that
-  make it readable again. It recovers about 98% of random chains up to 5
-  layers deep; the misses are cases with no single answer, such as very short
-  or reversed CJK text.
-
-## Japanese Scripts
-
-- Writes text in five styles: **Katakana** (English turned into loanword
-  katakana, with a dictionary of real loanwords and spelling rules for the
-  rest), **Hiragana** (a letter cipher), **Romaji mix** (romaji syllables
-  become kana, other words stay Latin), **Hankaku** (halfwidth katakana) and
-  **Kanji-look** (look-alike kanji).
-- Furigana (reading aids above the characters) and vertical writing
-  (tategaki) can be switched on.
-- Everything you write here decodes back exactly (see *Decode modes*). Katakana
-  from elsewhere is read with a loanword dictionary and the same spelling rules
-  run backwards over 64,000 English words (フロム → from); anything else
-  becomes romaji.
-- Bundles cut-down Noto Sans JP and Noto Serif JP fonts (SIL Open Font License).
-
-## Cipher Pact
-
-- A private cipher between you and a friend. Every message gets a new key
-  code (like `VIOLET-MAMMOTH-508`, about 2 million combinations), and the
-  code alone decides a brand-new random alphabet of symbols (runes, shapes,
-  emoji and more).
-- **Make:** *Forge* spins the vault wheel while the local AI writes a short
-  lesson note in one of ten formats (pirate note, spy briefing, treasure
-  map…). Then type your secret and *Seal* it into the note. The AI never sees
-  the alphabet or your secret; the clues and a warm-up word are added by the
-  app and never use letters of the secret. Without the AI, a built-in note is
-  used.
-- **Message styles:** 🔑 *Clues* (the key is sent separately, the most
-  private), or a style that puts the key inside the message so your friend can
-  read it straight away: 🔤 *Letter code* (`code: A=✦, B=✧`), 🟥 *Color boxes*
-  (every letter is a coloured box: 🟥🟦🟢💛…), 😀 *Emoji letters* (every letter
-  is an emoji: 🍕🦊🚀…), 🍎 *Word swap* and 🔢 *Number map*. 🎲 *Surprise* picks
-  one for each message. Color boxes and Emoji letters messages get their own
-  key (codes starting with `BOX-` / `EMO-`), so the key card, the wheel,
-  Practice and Read all use those boxes or emoji. Older 🟢 *Emoji words*
-  messages (one emoji per word) still read back.
-- Emoji, capitals and accents in a secret come back exactly, also with emoji
-  alphabets (a 🍕 you type stays a 🍕).
-- **Read:** paste a message; Prism finds the key in your key ring, or uses the
-  code your friend gave you.
-- **Practice:** flashcards for learning an alphabet by heart, with a streak and
-  per-symbol progress.
-- Key cards (the whole alphabet of a key, in its own boxes, emoji or symbols)
-  can be copied as an image, saved as PNG or copied as text; on Android they
-  open the share sheet.
-
-## Sound
+<br>
 
 Every sound is synthesized live with the Web Audio API; there are no audio
 files. Notes come from one pentatonic scale, so overlapping sounds stay in
@@ -432,9 +524,149 @@ glyphs, a koto in Japanese Scripts, the vault wheel in Cipher Pact). The
 speaker button in the title bar has the volume, sound on/off and typing
 clicks (plus vibration on Android); the settings are remembered.
 
-## Where data lives
+</details>
+
+<details>
+<summary><b>💾 Where data lives</b></summary>
+
+<br>
 
 - **Linux:** `~/.config/Prism/` holds history, settings and downloaded AI
   models (`models/`). User modules go in `~/.config/Prism/modules/`. AI
   models are only downloaded when you first open an AI mode.
 - **Android:** inside the app's own storage; uninstalling removes it.
+
+</details>
+
+## Write your own module
+
+A module is a folder containing a `module.json` and an ES module entry file. Modules are
+loaded from two places:
+
+- `src/modules/`: bundled with the app.
+- `~/.config/Prism/modules/`: **your own modules, with no rebuild needed.** Click the
+  folder button in the dock to open it, drop a module folder in, then click reload. A user
+  module with the same `id` as a built-in one replaces it.
+
+<table>
+<tr>
+<td width="45%" valign="top">
+
+**`module.json`**
+
+```json
+{
+  "id": "hello",
+  "name": "Hello",
+  "description": "Shown on the Home card.",
+  "icon": "icon.svg",
+  "accent": "#ff5c8a",
+  "entry": "index.js",
+  "style": "style.css",
+  "order": 20
+}
+```
+
+</td>
+<td width="55%" valign="top">
+
+**`index.js`**
+
+```js
+export default {
+  mount(root, ctx) {
+    root.innerHTML = `<h1 class="hello-title">Hello</h1>
+      <button class="hello-btn">Boom</button>`;
+    const btn = root.querySelector('.hello-btn');
+    const offTilt = ctx.fx.tilt(btn);
+    btn.onclick = (e) => {
+      ctx.fx.burst(e.clientX, e.clientY);
+      ctx.scene.pulse();
+      ctx.toast('Hello from a module');
+    };
+    return () => offTilt(); // cleanup when the user leaves
+  },
+};
+```
+
+</td>
+</tr>
+</table>
+
+`icon` can be an image file in the folder or a short text/emoji. `style` can be one file or
+a list, and is removed again when the user leaves the module.
+
+To take part in the universal translator on Home, add `"reader": "reader.js"`: its default
+export is `read(text, { storage }) → null | { text, style, confidence }`, where `confidence`
+(0–1) says how sure it is that the text is its kind and `storage` is the module's own
+`ctx.storage`. The translator ranks every module's reading by confidence and by how readable
+the result is.
+
+### The `ctx` object
+
+| Member | What it does |
+| --- | --- |
+| `ctx.meta` | the module's manifest, plus `baseUrl` and `source` |
+| `ctx.scene.pulse(n)` / `warp(n)` / `setAccent(hex)` / `setFocus('home' \| 'module')` | drive the 3D background |
+| `ctx.fx.tilt(el, opts)` | 3D tilt that follows the pointer; sets `--mx`/`--my` for glare effects |
+| `ctx.fx.magnetic(el)`, `ctx.fx.ripple(el)` | pointer effects |
+| `ctx.fx.scramble(el, text)` | decode-style text reveal (returns a promise) |
+| `ctx.fx.burst(x, y, { color, count, target })` | particle sparks, optionally streaming to a point |
+| `ctx.sound.play(name, { x, ... })` | a synthesized sound effect (`x` pans it to that screen position); `ctx.sound.sequence([{ at, name }])` plays a timeline and returns `{ stop() }` |
+| `ctx.toast(message)` | notification pill |
+| `ctx.storage.get/set/remove(key)` | JSON storage kept separate for each module |
+| `ctx.navigate(id)` | go to another module (or `'home'`) |
+| `ctx.url(path)` | resolve a file inside the module's folder |
+| `ctx.ai.load(spec, { onProgress })` | download (first time) and load a Hugging Face ONNX model, e.g. `{ model: 'onnx-community/Qwen2.5-1.5B-Instruct', dtype: 'q4f16' }` |
+| `ctx.ai.generate(spec, { messages, prefill }, { onToken })` | stream text from the local model; returns `{ done, cancel }` |
+
+Sound comes for free with the shared effects: `burst`, `scramble`, `scene.pulse` and
+`scene.warp` play matching sounds (pass `silent: true` to `burst`/`scramble` to skip them),
+and the shell adds sounds for clicks, hovers, typing and navigation. The presets live in
+`src/core/sound.js`. On phones and tablets (`ctx.sound.handheld` is true) the same sounds are
+re-voiced for small speakers and key moments also buzz (`ctx.sound.haptic('tick' | 'press' |
+'heavy' | 'success' | 'error')`); modules don't need to do anything.
+
+### Style rules
+
+Prefix your CSS classes (as the braille module does with `br-`) so modules don't clash. The
+shell's CSS variables (`--accent`, `--text`, `--muted`, `--glass`, `--line`, `--ease-out`, …)
+are available for a consistent look. Entrance animations should use `backwards` fill (not
+`forwards`/`both`), or they lock `transform` and break the hover tilt.
+
+<details>
+<summary><b>Phones and tablets</b>: shared breakpoints for the Android app</summary>
+
+<br>
+
+Modules also run in the Android app, so each module's CSS ends with a "phones and tablets"
+section. All modules use the same breakpoints, and the desktop layout stays untouched:
+
+| Case | Media query |
+| --- | --- |
+| Phone (portrait) | `(max-width: 599px), (max-width: 760px) and (orientation: portrait)` |
+| Landscape phone | `(max-height: 520px) and (min-width: 600px)` |
+| Stacked (one column) | `(max-width: 1000px) and (hover: none), (max-width: 760px), (max-height: 520px) and (min-width: 600px)` |
+| Keyboard open | `(max-width: 760px) and (orientation: portrait) and (max-height: 560px)` |
+| Touch targets | `(pointer: coarse)` |
+
+`body.handheld` is set on touch devices (hide keyboard-only hints under it) and
+`body.platform-android` inside the app. Text inputs need a font size of at least 16px on
+phones.
+
+</details>
+
+Before shipping a module, run `npm run check -- <module>`. It runs the module on desktop and
+on phone and tablet sizes, and reports layout, errors and leaks (see
+[`tests/check/README.md`](tests/check/README.md)).
+
+## About the trailer
+
+The [trailer](docs/media/prism-trailer.mp4) was rendered frame by frame with three.js, with
+4-sample motion blur. Its screens show real recordings of Prism in use, and the soundtrack
+is synthesized. The narration was produced locally with VoiceStudio.
+
+## License
+
+[MIT](package.json). Bundled fonts are under the SIL Open Font License (see each module's `fonts/OFL.txt`),
+and the optional AI model, Qwen2.5-1.5B-Instruct, is Apache-2.0.
